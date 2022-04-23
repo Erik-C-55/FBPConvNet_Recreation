@@ -1,46 +1,68 @@
+import os
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sys import argv
+
+from scipy.stats import mode
+
 # Import functions from this repo
 from ellipseGenerator import genEllipse
+from userInput import getArgs
 
-def main(seed=0):
-    # random.seed(seed)
-    # np.random.seed(seed)
+def main(args, seed=0):
+    random.seed(seed)
+    np.random.seed(seed)
     
-    m = 512
-    n = 512
-    image = np.zeros((m,n), dtype=np.single)
+    order_samps = int(np.log10(args.samples)) + 1
     
-    for ipse in range(15):
-        ellipseFits = False
+    for samp in range(1, args.samples+1):
+        image = np.zeros((args.res,args.res), dtype=np.single)
         
-        while not ellipseFits:
-            h = np.random.randint(-(m/2 - 8),(m/2 -8))
-            k = np.random.randint(-(n/2 -8),(n/2 -8))
-            a = np.random.randint(8,m/4)
-            b = np.random.randint(8,n/4)
-            theta = np.random.randint(0,360)
-            val = np.random.randint(10,40)
-            ellipseFits, newEllipse = genEllipse(m=m, n=n, h=h, k=k, a=a, b=b,
-                                                 theta=theta, val=val)
+        for ips in range(np.random.randint(args.lower_bound,args.upper_bound)):
+            ellipseFits = False
             
-        image = np.add(image, newEllipse)
+            # Keep trying ellipses until one fits
+            while not ellipseFits:
+                h = np.random.randint(-(args.res/2 - 8),(args.res/2 -8))
+                k = np.random.randint(-(args.res/2 -8),(args.res/2 -8))
+                a = np.random.randint(args.res/32,args.res/8)
+                b = np.random.randint(args.res/32,args.res/8)
+                theta = np.random.randint(0,360)
+                val = np.random.uniform(low=-0.5, high=0.5, size=None)
+                ellipseFits, newEllipse = genEllipse(m=args.res, h=h, k=k, a=a,
+                                                     b=b, theta=theta, val=val)
+                
+            image = np.add(image, newEllipse)
         
+        # Shift the image so that zero-valued pixels are now = 0.5
+        image = np.add(image, 0.5*np.ones((args.res,args.res),dtype=np.single))
         
-    lower = np.min(image)
-    upper = np.max(image)
+        # Clip the image to lie between 0 and 1 for the torch_radon library
+        image = np.clip(image, 0.0, 1.0)
     
-    image = 255.0 * (image - lower)/(upper - lower + 1e-6)
-    
-    image = image.astype(np.ubyte)
-    
-    plt.imshow(image, cmap='gray', vmin=0, vmax=255)
-    
-    print(np.max(image))
-    print(np.min(image))
-    
+        # Save the image to the specified output directory
+        if not os.path.isdir(args.output_dir):
+            os.mkdir(args.output_dir)
+            
+        np.save(os.path.join(args.output_dir,
+                             'im_'+str(samp).zfill(order_samps)), image)
+            
+        # Plot the first image and some of its statistics for verification
+        if samp == 1 and args.display:
+            plt.imshow(image, cmap='gray', vmin=0, vmax=1)
+            title_str = 'Sample Image. Max Intensity: {:.2f}. '
+            title_str += 'Min Intensity: {:.2f}. '
+            title_str += 'Mode Intensity: {:.2f}.'
+            plt.suptitle(title_str.format(np.max(image), np.min(image),
+                                       mode(image, axis=None).mode[0]))
+            plt.title('Close to continue.')
+          
+            # Show the image before all samples have been generated       
+            plt.show()
+  
 if __name__ == '__main__':
-    main()
+    args = getArgs(argv)
+    main(args)
     

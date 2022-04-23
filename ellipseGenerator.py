@@ -1,16 +1,15 @@
 import numpy as np
 from skimage.transform import rotate
 
-def checkEllipseBounds(m,n,h,k,a,b,theta):
+def checkEllipseBounds(m,h,k,a,b,theta):
     """This function calculates the bounding box for a rotated ellipse, then
     returns whether or not the ellipse (approximated by its bounding box) fits
     within the original image and the rotated image.
     
     Parameters:
-        m (int): width (in pixels) of the image. The origin of the graph will
-            be placed at m//2, so the graph bounds are -m//2 and m//2
-        n (int): height (in pixels) of the image.  The origin of the graph will
-            be placed at n//2, so the graph bounds are -n//2 and n//2
+        m (int): width/height (in pixels) of the (square) image. The origin of 
+            the graph will be placed at m//2, so the graph bounds are -m//2 
+            and m//2
         h (int): x-coordinate for the center of the ellipse
         k (int): y-coordinate for the center of the ellipse
         a (int): a is half the length of the horizontal axis of the ellipse
@@ -39,7 +38,7 @@ def checkEllipseBounds(m,n,h,k,a,b,theta):
     # Discretize by converting to an int
     
     shift_array = np.array([[h+m//2, h+m//2, h+m//2, h+m//2],
-                                [k+n//2, k+n//2, k+n//2, k+n//2]])
+                                [k+m//2, k+m//2, k+m//2, k+m//2]])
     
     bbox = np.add(bbox,shift_array).astype(np.int32)
     rot_bbox = np.add(rot_bbox,shift_array).astype(np.int32)
@@ -51,20 +50,19 @@ def checkEllipseBounds(m,n,h,k,a,b,theta):
     
     ellipseFits = True
     
-    if min_x < 0 or min_y < 0 or max_x > m or max_y > n:
+    if min_x < 0 or min_y < 0 or max_x > m or max_y > m:
         ellipseFits = False
         
     return ellipseFits
     
-def genEllipse(m=64, n= 64, h=0, k=0, a=1, b=1, theta=0, val=1):
+def genEllipse(m=64, h=0, k=0, a=1, b=1, theta=0, val=1):
     """This function draws an ellipse in an empty image. If the specified
     ellipse does not fit in the given image size, the returned image is empty.
     
     Parameters:
-        m (int): width (in pixels) of the image. The origin of the graph will
-            be placed at m//2, so the graph bounds are -m//2 and m//2
-        n (int): height (in pixels) of the image.  The origin of the graph will
-            be placed at n//2, so the graph bounds are -n//2 and n//2
+        m (int): width/height (in pixels) of the (square) image. The origin of 
+            the graph will be placed at m//2, so the graph bounds are -m//2 
+            and m//2
         h (int): x-coordinate for the center of the ellipse
         k (int): y-coordinate for the center of the ellipse
         a (int): a is half the length of the horizontal axis of the ellipse
@@ -85,15 +83,15 @@ def genEllipse(m=64, n= 64, h=0, k=0, a=1, b=1, theta=0, val=1):
     """
     
     # Check that this ellipse will completely fit in its place before rotating
-    ellipseFits = checkEllipseBounds(m, n, h, k, a, b, theta)
+    ellipseFits = checkEllipseBounds(m, h, k, a, b, theta)
     
     # Start with a blank image
-    im = np.zeros((m,n), dtype=np.bool_)
+    im = np.zeros((m,m), dtype=np.int32)
     
     if ellipseFits:
         # Establish coordinate grid
         x = np.linspace(-m//2, m//2, m)
-        y = np.linspace(-n//2, n//2, n)[:,None] # As a column vector
+        y = np.linspace(-m//2, m//2, m)[:,None] # As a column vector
         
         x_grid, y_grid = np.meshgrid(x,y)
         
@@ -103,10 +101,10 @@ def genEllipse(m=64, n= 64, h=0, k=0, a=1, b=1, theta=0, val=1):
         # Add the ellipse to the existing image
         im[ellipse <= 1.0] = True
     
-        # Generate a rotated image (boolean prevents interpolation effects)       
-        im = rotate(im, theta, center=(h+m//2, k+n//2), preserve_range=True)
+        # Generate a rotated image      
+        im = rotate(im, theta, center=(h+m//2, k+m//2), preserve_range=True)
         
-        # Convert rotated image to int32 and scale
+        # Convert rotated image to float, scale ellipse by value
         im = im.astype(np.single) * val
         
     return ellipseFits, im
