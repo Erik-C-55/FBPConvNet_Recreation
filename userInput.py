@@ -10,7 +10,7 @@ def getArgs(CLArgs):
     
     # Add optional arguments
     parser.add_argument('-d','--display', action='store_true')
-    parser.add_argument('-l','--lower_bound', type=int, default=6,
+    parser.add_argument('-l','--lower_bound', type=int, default=5,
                         help='a random number (integer) of ellipses will be generated.  This is the lower bound for that random number.')
     parser.add_argument('-r','--res', type=int, default=512,
                         help='image resolution in pixels.  Image will be square (res x res).  Resolution should be a multiple of 16.')
@@ -20,5 +20,8 @@ def getArgs(CLArgs):
                         help='a random number (integer) of ellipses will be generated.  This is the upper bound for that random number.')
     
     args = parser.parse_args(CLArgs)
+    
+    if args.lower > args.upper:
+        args.upper = args.lower + 10
     
     return args
