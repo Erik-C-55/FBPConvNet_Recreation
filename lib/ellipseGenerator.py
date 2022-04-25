@@ -22,6 +22,7 @@ def checkEllipseBounds(m,h,k,a,b,theta):
     Returns:
         ellipseFits (bool): True if the ellipse fits. False if it does not fit.
     """
+    
     # Find original bounding box, centered @ (0,0) (shift by h, k occurs later)
     bbox = np.array([[-a, a, a, -a],
                      [-b, -b, b, b]])
