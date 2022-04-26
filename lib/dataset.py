@@ -23,14 +23,14 @@ class FBPDataset(Dataset):
     def obtainImList(self, n_ellipse, n_samps, mode):
         
         # Name of directory where images are stored
-        dirName = str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images'
+        dirName = 'imageData/' + str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images'
         
         # Since the images are randomly generated anyway, the training set can
         # simply be the first 90% of images, with the next 5% for validation &
         # the last 5% for test
-        train_Ims = 0.9*n_samps
-        val_Ims = np.floor(0.05*n_samps)
-        test_Ims = np.ceil(0.05*n_samps)
+        train_Ims = int(0.9*n_samps)
+        val_Ims = int(np.floor(0.05*n_samps))
+        test_Ims = int(np.ceil(0.05*n_samps))
             
         # Calculate the ranges for each set
         if mode == 'train':
@@ -61,11 +61,11 @@ class FBPDataset(Dataset):
         # Calculate detector count (default from torch_radon example)
         det_count = int(np.sqrt(2)*self.im_size + 0.5)
         
-        # Move images to GPU for speed
-        if torch.cuda.is_available():
-            device = torch.device('cuda')
+        # # Move images to GPU for speed
+        # if torch.cuda.is_available():
+        #     device = torch.device('cuda')
             
-        origIm = torch.FloatTensor(origIm).to(device)
+        origIm = torch.FloatTensor(origIm).to(self.device)
             
         # Generate Radon transform for full-view parallel-beam CT
         radon = Radon(self.im_size, angles, clip_to_circle=False,
