@@ -10,6 +10,10 @@ from scipy.stats import mode
 # Import functions from this repo
 from ellipseGenerator import genEllipse
 
+# TODO: Just make the dataset very rigid, so they always know there will be 1500
+# of each type of image and that they will follow my folder names.  It makes 
+# things more accesible.
+
 # This function parses command-line arguments to allow flexible execution.  For
 # an explanation 
 def getArgs(CLArgs):

@@ -1,6 +1,4 @@
 import os
-import torch
-import torchvision
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,30 +8,45 @@ from torch.utils.data import DataLoader, Dataset
 
 class FBPDataset(Dataset):
     
-    def __init__(self, directory, im_size=512, full_views=1000, low_views=143,
-                 transform=None, mode=train):
-        self.directory = directory
+    def __init__(self, n_ellipse=(25,34), im_size=512, full_views=1000,
+                 low_views=143, transform=None, mode='train', n_samps=500):
+        self.n_ellipse = n_ellipse
         self.im_size = im_size
         self.full_views = full_views
         self.low_views = low_views
         self.transform = transform
-        self.mode = mode
         self.fnames = []
         
-    def obtainImList(self):
-        # Open the appropriate .txt key file and read all the lines
-        keyFile = open(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                    os.pardir,'imageData',
-                                                # Handle file name strings    'Val_'+str(valPerc)+'_Seed_0',self.mode+'.txt')),'r')
-        keyList = keyFile.readlines()
-        keyFile.close()
+        self.obtainImList(n_ellipse, n_samps, mode)
         
-        # Iterate over list, strip newline character,and add it to
-        # list of files/labels in this dataset
-        for im in keyList:
+    def obtainImList(self, n_ellipse, n_samps, mode):
+        
+        # Name of directory where images are stored
+        dirName = str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images'
+        
+        # Since the images are randomly generated anyway, the training set can
+        # simply be the first 90% of images, with the next 5% for validation &
+        # the last 5% for test
+        train_Ims = 0.9*n_samps
+        val_Ims = np.floor(0.05*n_samps)
+        test_Ims = np.ceil(0.05*n_samps)
             
-            self.fnames.append(os.path.join(self.directory,im.rstrip('\n')))
-
+        # Calculate the ranges for each set
+        if mode == 'train':
+            lower = 1
+            upper = train_Ims + 1
+            
+        elif mode == 'validation':
+            lower = train_Ims + 1
+            upper = train_Ims + val_Ims + 1
+            
+        elif mode == 'test':
+            lower = train_Ims + val_Ims + 1
+            upper = train_Ims + val_Ims + test_Ims + 1
+            
+        for im in range(lower, upper):
+            self.fnames.append(os.path.join(dirName, 'im_' + \
+                                            str(im).zfill(4) + '.npy'))
         
     def __getitem__(self, index):
         origIm = np.load(self.fnames[index])
@@ -69,8 +82,11 @@ class FBPDataset(Dataset):
                                                              filter_name='ramp'))
         
         return low_fbp, full_fbp, low_sgram, full_sgram
+    
+    def __len__(self):
+        return len(self.fnames)
        
-if __name__ == 'main':
+if __name__ == '__main__':
     imLoader = DataLoader(FBPDataset('imageData/5_14_Ellipses'), batch_size=1,
                          shuffle=False, num_workers=0)
     
