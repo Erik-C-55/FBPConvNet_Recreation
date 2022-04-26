@@ -1,4 +1,5 @@
 import os
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -8,10 +9,10 @@ from torch.utils.data import DataLoader, Dataset
 
 class FBPDataset(Dataset):
     
-    def __init__(self, n_ellipse=(25,34), im_size=512, full_views=1000,
-                 low_views=143, transform=None, mode='train', n_samps=500):
+    def __init__(self, n_ellipse=(25,34), full_views=1000, low_views=143,
+                 transform=None, mode='train', n_samps=500):
         self.n_ellipse = n_ellipse
-        self.im_size = im_size
+        self.im_size = 512
         self.full_views = full_views
         self.low_views = low_views
         self.transform = transform
@@ -60,6 +61,12 @@ class FBPDataset(Dataset):
         # Calculate detector count (default from torch_radon example)
         det_count = int(np.sqrt(2)*self.im_size + 0.5)
         
+        # Move images to GPU for speed
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+            
+        origIm = torch.FloatTensor(origIm).to(device)
+            
         # Generate Radon transform for full-view parallel-beam CT
         radon = Radon(self.im_size, angles, clip_to_circle=False,
                       det_count=det_count)
