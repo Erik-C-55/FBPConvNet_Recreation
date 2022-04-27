@@ -81,28 +81,27 @@ class ContractPath(nn.Module):
         
     def forward(self, x):
         # Along the way, save features for expansion path
-        features =[]
         
         x = self.stage1(x)
-        features.append(x)
+        features1=x
         x = self.pool1(x)
         
         x = self.stage2(x)
-        features.append(x)
+        features2=x
         x = self.pool2(x)
         
         x = self.stage3(x)
-        features.append(x)
+        features3=x
         x = self.pool3(x)
         
         x = self.stage4(x)
-        features.append(x)
+        features4=x
         x = self.pool4(x)
         
         x = self.stage5(x)
-        features.append(x)
+        features5=x
             
-        return features
+        return features1, features2, features3, features4, features5
     
 class ExpandPath(nn.Module):
     """This class consists of the """
@@ -118,22 +117,22 @@ class ExpandPath(nn.Module):
         self.upconv4 = nn.ConvTranspose2d(chs[3],chs[4],2,2)
         self.stage4 = DbleConvBlock(chs[3],chs[4])
         
-    def forward(self, x, encoder_features):
+    def forward(self, x, enc_feat4, enc_feat3, enc_feat2, enc_feat1):
         # Along the way, concatenate features from contracting path
         x = self.upconv1(x)
-        x = torch.cat([x, encoder_features[0]], dim=1)
+        x = torch.cat([x, enc_feat4], dim=1)
         x = self.stage1(x)
         
         x = self.upconv2(x)
-        x = torch.cat([x, encoder_features[1]], dim=1)
+        x = torch.cat([x, enc_feat3], dim=1)
         x = self.stage2(x)
         
         x = self.upconv3(x)
-        x = torch.cat([x, encoder_features[2]], dim=1)
+        x = torch.cat([x, enc_feat2], dim=1)
         x = self.stage3(x)
         
         x = self.upconv4(x)
-        x = torch.cat([x, encoder_features[3]], dim=1)
+        x = torch.cat([x, enc_feat1], dim=1)
         x = self.stage4(x)
             
         return x
@@ -148,10 +147,12 @@ class UNet(nn.Module):
         self.chan_combine = nn.Conv2d(dec_chs[-1], n_class, 1, padding=0)
         
     def forward(self, x):
-        enc_features = self.encoder(x)
-        out = self.decoder(enc_features[::-1][0], enc_features[::-1][1:])
+        # residual = x
+        feat1, feat2, feat3, feat4, feat5 = self.encoder(x)
+        out = self.decoder(feat5, feat4, feat3, feat2, feat1)
         out = self.chan_combine(out)
         
+        # out += residual
         return out
         
         
