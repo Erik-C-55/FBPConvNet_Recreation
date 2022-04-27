@@ -2,6 +2,7 @@ import os
 import torch
 import random
 import numpy as np
+import torch.multiprocessing as mp
 
 from sys import argv
 from torchvision.utils import make_grid
@@ -12,7 +13,7 @@ from torchvision.transforms import Compose, RandomHorizontalFlip, \
 # Import from this repo
 from lib.unet import Unet 
 from lib.dataset import FBPDataset
-from lib.userInput import getUserOptions
+# from lib.userInput import getUserOptions
 
 def seedEverything(seed):
     torch.manual_seed(seed)
@@ -31,11 +32,12 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def loadData(options, gen):
+def makeLoaders(options, gen):
     
     # Add data augmentation used by original authors
     tr_trnsfrm = Compose([RandomHorizontalFlip(p=0.5),
                             RandomVerticalFlip(p=0.5)])
+    
     dataLoaders = []
     
     if options.trainVal:
@@ -47,7 +49,7 @@ def loadData(options, gen):
         
         tr_loader=torch.utils.data.DataLoader(tr_set, batch_size=options.batch,
                                               shuffle=True, pin_memory=True,
-                                              num_workers=options.workers,  
+                                              num_workers=options.workers,
                                               generator=gen,
                                               worker_init_fn=seed_worker)
         
@@ -95,7 +97,7 @@ def main(options, seed = 0):
     gen = seedEverything(seed)
     
     # Instantiate dataloaders, depending on testing or training setting
-    dataLoaders = loadData(options, gen)
+    dataLoaders = makeLoaders(options, device, gen)
     
     if options.trainVal:
         tr_loader = dataLoaders[0]
@@ -142,14 +144,26 @@ def main(options, seed = 0):
         loss = torch.nn.MSELoss()
         
     # Original authors used batchsize of 1.  If batchsize is greater, scale lr
-    lr = 
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
-                                lr=0.01, momentum)
+    # lr = 
+    # optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
+    #                             # lr=0.01, momentum)
         
     
     
 
 if __name__ == '__main__':
-    options = getUserOptions(argv)
+    # Temp, for debug only
+    from argparse import Namespace
+    options = Namespace()
+    options.n_ellipse = (25,34)
+    options.workers = 8
+    options.full_views = 1000
+    options.low_views = 143
+    options.n_samps = 500
+    options.batch = 4
+    options.trainVal = True
+    options.graph = True
+
+    # options = getUserOptions(argv)
     main(options)
     
