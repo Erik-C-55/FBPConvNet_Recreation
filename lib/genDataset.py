@@ -13,10 +13,6 @@ from ellipseGenerator import genEllipse
 
 from torch_radon import ParallelBeam
 
-# TODO: Just make the dataset very rigid, so they always know there will be 1500
-# of each type of image and that they will follow my folder names.  It makes 
-# things more accesible.
-
 # This function parses command-line arguments to allow flexible execution.  For
 # an explanation 
 def getArgs(CLArgs):
@@ -80,7 +76,6 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
     
         # Calculate detector count (default from torch_radon example)
         det_count = int(np.sqrt(2)*im_size + 0.5)
-        
 
         # Generate Radon transform for full-view parallel-beam CT
         radon = ParallelBeam(det_count=det_count, angles=angles)
@@ -176,12 +171,18 @@ def makeDataset(args, seed=0):
             # Show the image before all samples have been generated       
             plt.show()
 
-        # If necessary, create output directory
+        # If necessary, create output directory & subfolder
+        subfolder = os.path.join(args.output_dir, str(args.lower_bound) + '_' + \
+                                 str(args.upper_bound) + '_Images')
+            
         if not os.path.isdir(args.output_dir):
             os.mkdir(args.output_dir)
+        
+        if not os.path.isdir(subfolder):
+            os.mkdir(subfolder)
             
         # Apply Radon transform to this image
-        applyRadon(image, samp, args.output_dir, n_views=[1000,143,50],
+        applyRadon(image, samp, subfolder, n_views=[1000,143,50],
                    display=args.display)
 
         
