@@ -1,18 +1,14 @@
 import os
-import torch
 import random
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
 from sys import argv
-from scipy.stats import mode
-from torchvision.transforms import CenterCrop
+from skimage.transform import radon, iradon
 
 # Import functions from this repo
 from ellipseGenerator import genEllipse
-
-from torch_radon import ParallelBeam
 
 # This function parses command-line arguments to allow flexible execution.  For
 # an explanation 
@@ -56,54 +52,65 @@ def getArgs(CLArgs):
     
     return args
 
-def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
+def applyRadon(im, idx, directory, ord_samps, display=False):
+     
+    # Generate names for directories.  If they don't exist, create them
+    dirs = []
+    for count, views in enumerate([1000, 143, 50]):
+        dirs.append(os.path.join(directory, str(views) + '_Views'))
     
-    # Move images to GPU for speed
-    if torch.cuda.is_available():
-        device = torch.device('cuda') 
-        im = torch.from_numpy(im).to(device)
-        
-    for views in n_views:
-        # Generate name for directory.  If it doesn't exist, create it
-        destDir = os.path.join(directory, str(views) + '_views')
-        
-        if not os.path.isdir(destDir):
-            os.mkdir(destDir)
-      
-        im_size = im.size()[0]
-        
-        # Calculate all view angles for 1000-view projection
-        angles = np.linspace(0, np.pi*2, 1000, endpoint=False)
+        if not os.path.isdir(dirs[count]):
+            os.mkdir(dirs[count])
+            
+    dirsgram = os.path.join(directory, 'Sinograms')
     
-        # Calculate detector count (default from torch_radon example)
-        det_count = int(np.sqrt(2)*im_size + 0.5)
-        # det_count = im_size
-
-        # Generate Radon transform for full-view parallel-beam CT
-        radon = ParallelBeam(det_count=det_count, angles=angles)
+    if not os.path.isdir(dirsgram):
+        os.mkdir(dirsgram)
+    
+    # Calculate all view angles (degrees) for 1000-view projection
+    angles = np.linspace(0.0, 180.0, 1000, endpoint=False)
+    
+    # Calculate 'full-view' sinogram and filtered backprojection
+    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
+    
+    fbp_1000 = iradon(sgram, filter_name='ramp', interpolation='linear',
+                      circle=False, preserve_range=True)
+    
+    # Calculate low-view FBP
+    fbp_143 = iradon(sgram[:,::7], filter_name='ramp', interpolation='linear',
+                     circle=False, preserve_range=True)
+    
+    fbp_50 = iradon(sgram[:,::20], filter_name='ramp', interpolation='linear',
+                    circle=False, preserve_range=True)
+    
+    # Save files
+    imName = 'im_'+str(idx).zfill(ord_samps)
+    np.save(os.path.join(dirs[0], imName), fbp_1000)
+    np.save(os.path.join(dirs[1], imName), fbp_143)
+    np.save(os.path.join(dirs[2], imName), fbp_50)
+    np.save(os.path.join(dirsgram, imName), sgram)
+    
+    if display and idx==1:
+        print('1000-view sinogram size: ' + str(np.shape(sgram)))
+        print('143-view sinogram size: ' + str(np.shape(sgram[:,::7])))
+        print('50-view sinogram size: ' + str(np.shape(sgram[:,::20])))
         
-        # Calculate full-view sinogram and filtered backprojection
-        sgram = radon.forward(im)
-        print('Sinogram size: ' + str(sgram.size()))
-        fbp = radon.backprojection(radon.filter_sinogram(sgram,
-                                                         filter_name='ramp'))
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(8,8))
         
-        # Apply center crop to reduce back to original image size
-        fbp = CenterCrop(im_size)(fbp)
-
-        # If displaying, display for index 1
-        if idx == 1 and display:
-            plt.imshow(sgram, cmap='gray', vmin=0, vmax=1)
-            title_str = 'Sinogram: {:.2f} views.'
-            plt.suptitle(title_str.format(views))
-            plt.title('Close to continue.')
-          
-            # Show the image before all samples have been generated       
-            plt.show()
+        ax1.set_title("Original")
+        ax1.imshow(im, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
         
-        fileName = os.path.join(destDir, 'im_' + str(idx).zfill(4) + '.pth')
+        ax2.set_title("FBP 1000 Views")
+        ax2.imshow(fbp_1000, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
         
-        torch.save(fbp, fileName)
+        ax3.set_title("FBP 143 Views")
+        ax3.imshow(fbp_143, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        
+        ax4.set_title("FBP 50 Views")
+        ax4.imshow(fbp_50, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        
+        fig.tight_layout()
+        plt.show()
         
 def makeDataset(args, seed=0):
     """This function generates a simulated dataset of grayscale ellipse images.
@@ -161,21 +168,8 @@ def makeDataset(args, seed=0):
         # Shift the image so that zero-valued pixels are now = 0.5
         image = np.add(image, 0.5*np.ones((args.res,args.res),dtype=np.single))
         
-        # Clip the image to lie between 0 and 1 for the torch_radon library
+        # Clip the image to lie between 0 and 1 for the radon transform library
         image = np.clip(image, 0.0, 1.0)
-            
-        # Plot the first image and some of its statistics for verification
-        if samp == 1 and args.display:
-            plt.imshow(image, cmap='gray', vmin=0, vmax=1)
-            title_str = 'Sample Image. Max Intensity: {:.2f}. '
-            title_str += 'Min Intensity: {:.2f}. '
-            title_str += 'Mode Intensity: {:.2f}.'
-            plt.suptitle(title_str.format(np.max(image), np.min(image),
-                                       mode(image, axis=None).mode[0]))
-            plt.title('Close to continue.')
-          
-            # Show the image before all samples have been generated       
-            plt.show()
 
         # If necessary, create output directory & subfolder
         subfolder = os.path.join(args.output_dir, str(args.lower_bound) + '_' + \
@@ -188,12 +182,7 @@ def makeDataset(args, seed=0):
             os.mkdir(subfolder)
             
         # Apply Radon transform to this image
-        applyRadon(image, samp, subfolder, n_views=[1000,143,50],
-                   display=args.display)
-        
-        # Save original image for comparison (debug only)
-        np.save(os.path.join(args.output_dir,
-                             'im_'+str(samp).zfill(order_samps)), image)
+        applyRadon(image, samp, subfolder, order_samps, display=args.display)
 
 # If this file is run, parse the command-line arguments and the call main()
 if __name__ == '__main__':
