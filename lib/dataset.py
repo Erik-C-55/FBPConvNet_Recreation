@@ -43,8 +43,6 @@ class FBPDataset(Dataset):
             lower = train_Ims + val_Ims + 1
             upper = train_Ims + val_Ims + test_Ims + 1
             
-        print('Lower: ' + str(lower))
-        print('Upper: ' + str(upper))
         for im in range(lower, upper):
             imName = 'im_' + str(im).zfill(4) + '.npy'
             self.full_views_list.append(os.path.join(dirName, str(self.full_views) + '_Views', imName))
