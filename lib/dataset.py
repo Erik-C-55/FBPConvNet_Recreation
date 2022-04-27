@@ -3,8 +3,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Import Parallel Beam Radon transform function
-from torch_radon import Radon
+from torch_radon import ParallelBeam
 from torch.utils.data import DataLoader, Dataset
 
 class FBPDataset(Dataset):
@@ -68,8 +67,7 @@ class FBPDataset(Dataset):
         origIm = torch.FloatTensor(origIm).to(device)
             
         # Generate Radon transform for full-view parallel-beam CT
-        radon = Radon(self.im_size, angles, clip_to_circle=False,
-                      det_count=det_count)
+        radon = ParallelBeam(det_count=det_count, angles=angles)
         
         # Calculate full-view sinogram and filtered backprojection
         full_sgram = radon.forward(origIm)
@@ -80,8 +78,7 @@ class FBPDataset(Dataset):
         angles = np.linspace(0, np.pi, self.low_views, endpoint=False)
         
         # Generate Radon transform for low-view parallel-beam CT
-        radon = Radon(self.im_size, angles, clip_to_circle=False,
-                      det_count=det_count)
+        radon = ParallelBeam(det_count=det_count, angles=angles)
         
         # Calculate low-view sinogram and filtered backprojection
         low_sgram = radon.forward(origIm)
