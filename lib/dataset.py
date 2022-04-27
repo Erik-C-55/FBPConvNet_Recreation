@@ -1,4 +1,5 @@
 import os
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -50,14 +51,18 @@ class FBPDataset(Dataset):
         
     def __getitem__(self, index):
         
-        # Load ground truth and input
-        full_fbp = np.load(self.full_views_list[index])
-        low_fbp = np.load(self.low_views_list[index])
-        
+        # Load ground truth and input as tensors
+        full_fbp = torch.from_numpy(np.load(self.full_views_list[index]))
+        low_fbp = torch.from_numpy(np.load(self.low_views_list[index]))
+       
         # Transform ground truth and input
         if self.transform is not None:
             full_fbp = self.transform(full_fbp)
             low_fbp = self.transform(low_fbp)
+        
+        # Expand tensors to preserve channel dimension
+        full_fbp = full_fbp.unsqueeze(dim=0)
+        low_fbp = low_fbp.unsqueeze(dim=0)
         
         return low_fbp, full_fbp
     
@@ -65,19 +70,21 @@ class FBPDataset(Dataset):
         return len(self.full_views_list)
        
 if __name__ == '__main__':
-    imLoader = DataLoader(FBPDataset('imageData/5_14_Ellipses'), batch_size=1,
-                         shuffle=False, num_workers=0)
+    imLoader = DataLoader(FBPDataset(n_ellipse=(5,14)), batch_size=4,
+                         shuffle=False, num_workers=4)
     
     low_fbp, full_fbp = iter(imLoader).next()
+
+    print(low_fbp.shape)
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4.5))
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4.5))
     
-    ax1.imshow(low_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax1.title('Low-view FBP')
+    # ax1.imshow(low_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    # ax1.title('Low-view FBP')
     
-    ax2.imshow(full_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax2.title('Full-view FBP')
+    # ax2.imshow(full_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    # ax2.title('Full-view FBP')
     
-    fig.tight_layout()
-    plt.show()
+    # fig.tight_layout()
+    # plt.show()
     

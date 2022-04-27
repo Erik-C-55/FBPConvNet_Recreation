@@ -12,7 +12,7 @@ from torchvision.transforms import Compose, RandomHorizontalFlip, \
     RandomVerticalFlip
 
 # Import from this repo
-from lib.unet import Unet 
+from lib.unet import UNet 
 from lib.dataset import FBPDataset
 # from lib.userInput import getUserOptions
 
@@ -107,7 +107,7 @@ def main(options, seed = 0):
         test_loader = dataLoaders[0]
            
     # Generate Model
-    FBPConvNet = Unet(in_chans = 1, out_chans = 1)
+    FBPConvNet = UNet()
     
     cur_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
     logdir = os.path.join('logs', cur_time)
