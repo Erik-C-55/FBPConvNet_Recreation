@@ -60,7 +60,7 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
     # Move images to GPU for speed
     if torch.cuda.is_available():
         device = torch.device('cuda') 
-        im = torch.FloatTensor(im).to(device)
+        im = torch.from_numpy(im).to(device)
         
     for views in n_views:
         # Generate name for directory.  If it doesn't exist, create it
@@ -72,16 +72,18 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
         im_size = im.size()[0]
         
         # Calculate all view angles for 1000-view projection
-        angles = np.linspace(0, np.pi, 1000, endpoint=False)
+        angles = np.linspace(0, np.pi*2, 1000, endpoint=False)
     
         # Calculate detector count (default from torch_radon example)
-        det_count = int(np.sqrt(2)*im_size + 0.5)
+        # det_count = int(np.sqrt(2)*im_size + 0.5)
+        det_count = im_size
 
         # Generate Radon transform for full-view parallel-beam CT
         radon = ParallelBeam(det_count=det_count, angles=angles)
         
         # Calculate full-view sinogram and filtered backprojection
         sgram = radon.forward(im)
+        print('Sinogram size: ' + str(sgram.size()))
         fbp = radon.backprojection(radon.filter_sinogram(sgram,
                                                          filter_name='ramp'))
         
