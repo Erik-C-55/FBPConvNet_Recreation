@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import random
 import numpy as np
@@ -108,27 +109,26 @@ def main(options, seed = 0):
     # Generate Model
     FBPConvNet = Unet(in_chans = 1, out_chans = 1)
     
+    cur_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+    logdir = os.path.join('logs', cur_time)
+    if not os.path.isdir(logdir):
+        os.makedirs(logdir)
+    
     # Generate Tensorboard SummaryWriter for tracking
-    writer = SummaryWriter(log_dir='logs')
+    writer = SummaryWriter(log_dir=logdir)
     
     # If the user wants to add the model graph and sample images to Tensorboard
     if options.graph:
         if options.trainVal:
-            low_fbp, full_fbp, low_sgram, full_sgram = iter(val_loader).next()
+            low_fbp, full_fbp = iter(val_loader).next()
         else:
-            low_fbp, full_fbp, low_sgram, full_sgram = iter(test_loader).next()
+            low_fbp, full_fbp = iter(test_loader).next()
             
         writer.add_graph(FBPConvNet, low_fbp)
         writer.add_image('Low-View FBP', make_grid(low_fbp, pad_value=1.0,
                                                    normalize=False,
                                                    nrow=options.batch//2))
         writer.add_image("'Full-view' FBP", make_grid(full_fbp, pad_value=1.0,
-                                                   normalize=False,
-                                                   nrow=options.batch//2))
-        writer.add_image('Low-View Sinogram', make_grid(low_sgram, pad_value=1.0,
-                                                   normalize=False,
-                                                   nrow=options.batch//2))
-        writer.add_image("'Full-View' Sinogram", make_grid(full_sgram, pad_value=1.0,
                                                    normalize=False,
                                                    nrow=options.batch//2))
         # TIP: Debugging only
@@ -144,14 +144,44 @@ def main(options, seed = 0):
         loss = torch.nn.MSELoss()
         
     # Original authors used batchsize of 1.  If batchsize is greater, scale lr
-    # lr = 
-    # optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
-    #                             # lr=0.01, momentum)
+    lr = 0.01 * float(options.batch)
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
+                                lr=lr, momentum=0.99)
+    
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
+    
+    valLoss = 1e5
+    minValLoss = 1e5
+    
+    # Train the model, if required
+    if options.trainVal:
+        for epoch in range(1, options.max_epochs+1):
+            train(FBPConvNet, tr_loader, epoch, loss, optimizer)
+            
+            if (epoch %2 ==0 or epoch == options.max_epochs):
+                valLoss = float(validation(FBPConvNet, val_loader, epoch, loss))
+                
+                # Update the max tracker as needed
+                if valLoss < minValLoss:
+                    minValLoss = valLoss
+                
+                    # Don't worry about saving checkpoints until at
+                    # least 1/5 through training, as it is unlikely 
+                    # that the best model will be achieved before then
+                    if (epoch > options.max_epochs//5):
+                        checkpt_path = os.path.join(logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
+                        torch.save(FBPConvNet.state_dict(), checkpt_path)
+                        
+                        
+            scheduler.step()
         
-    
-    
-
+            
 if __name__ == '__main__':
+    
+    # Handle torch backends for reproducibility
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    
     # Temp, for debug only
     from argparse import Namespace
     options = Namespace()
@@ -163,6 +193,7 @@ if __name__ == '__main__':
     options.batch = 4
     options.trainVal = True
     options.graph = True
+    options.max_epochs = 100
 
     # options = getUserOptions(argv)
     main(options)

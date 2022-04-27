@@ -1,9 +1,7 @@
 import os
-import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from torch_radon import ParallelBeam
 from torch.utils.data import DataLoader, Dataset
 
 class FBPDataset(Dataset):
@@ -15,7 +13,7 @@ class FBPDataset(Dataset):
         self.full_views = full_views
         self.low_views = low_views
         self.transform = transform
-        self.fnames = []
+        self.full_views, self.low_views = []
         
         self.obtainImList(n_ellipse, n_samps, mode)
         
@@ -45,74 +43,42 @@ class FBPDataset(Dataset):
             upper = train_Ims + val_Ims + test_Ims + 1
             
         for im in range(lower, upper):
-            self.fnames.append(os.path.join(dirName, 'im_' + \
-                                            str(im).zfill(4) + '.npy'))
+            imName = 'im_' + str(im).zfill(4) + '.npy'
+            self.full_views.append(os.path.join(dirName, str(self.full_views) + \
+                                                '_Views', imName))
+            self.low_views.append(os.path.join(dirName, str(self.low_views) + \
+                                                '_Views', imName))
         
     def __getitem__(self, index):
-        origIm = np.load(self.fnames[index])
         
+        # Load ground truth and input
+        full_fbp = np.load(self.full_views[index])
+        low_fbp = np.load(self.low_views[index])
+        
+        # Transform ground truth and input
         if self.transform is not None:
-            origIm = self.transform(origIm)
+            full_fbp = self.transform(full_fbp)
+            low_fbp = self.transform(low_fbp)
         
-        # Calculate all view angles
-        angles = np.linspace(0, np.pi, self.full_views, endpoint=False)
-
-        # Calculate detector count (default from torch_radon example)
-        det_count = int(np.sqrt(2)*self.im_size + 0.5)
-        
-        # # Move images to GPU for speed
-        # if torch.cuda.is_available():
-        #     device = torch.device('cuda')
-            
-        origIm = torch.FloatTensor(origIm).to(self.device)
-            
-        # Generate Radon transform for full-view parallel-beam CT
-        radon = ParallelBeam(det_count=det_count, angles=angles)
-        
-        # Calculate full-view sinogram and filtered backprojection
-        full_sgram = radon.forward(origIm)
-        full_fbp = radon.backprojection(radon.filter_sinogram(full_sgram,
-                                                             filter_name='ramp'))
-        
-        # Calculate all view angles
-        angles = np.linspace(0, np.pi, self.low_views, endpoint=False)
-        
-        # Generate Radon transform for low-view parallel-beam CT
-        radon = ParallelBeam(det_count=det_count, angles=angles)
-        
-        # Calculate low-view sinogram and filtered backprojection
-        low_sgram = radon.forward(origIm)
-        low_fbp = radon.backprojection(radon.filter_sinogram(low_sgram,
-                                                             filter_name='ramp'))
-        
-        return low_fbp, full_fbp, low_sgram, full_sgram
+        return low_fbp, full_fbp
     
     def __len__(self):
-        return len(self.fnames)
+        return len(self.full_views)
        
 if __name__ == '__main__':
     imLoader = DataLoader(FBPDataset('imageData/5_14_Ellipses'), batch_size=1,
                          shuffle=False, num_workers=0)
     
-    low_fbp, full_fbp, low_sgram, full_sgram = iter(imLoader).next()
+    low_fbp, full_fbp = iter(imLoader).next()
     
-    plt.imshow(low_fbp, cmap='gray', vmin=0, vmax=1)
-    plt.suptitle('Low-view FBP')
-    plt.title('Close to continue.')     
-    plt.show()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4.5))
     
-    plt.imshow(full_fbp, cmap='gray', vmin=0, vmax=1)
-    plt.suptitle('Full-view FBP')
-    plt.title('Close to continue.')     
-    plt.show()
+    ax1.imshow(low_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    ax1.title('Low-view FBP')
     
-    plt.imshow(low_sgram, cmap='gray', vmin=0, vmax=1)
-    plt.suptitle('Low-view Sinogram')
-    plt.title('Close to continue.')     
-    plt.show()
+    ax2.imshow(full_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    ax2.title('Full-view FBP')
     
-    plt.imshow(full_sgram, cmap='gray', vmin=0, vmax=1)
-    plt.suptitle('Full-view sinogram')
-    plt.title('Close to continue.')     
+    fig.tight_layout()
     plt.show()
     
