@@ -173,7 +173,7 @@ def makeDataset(args, seed=0):
 
         # If necessary, create output directory & subfolder
         subfolder = os.path.join(args.output_dir, str(args.lower_bound) + '_' + \
-                                 str(args.upper_bound) + '_Images')
+                                 str(args.upper_bound - 1) + '_Images')
             
         if not os.path.isdir(args.output_dir):
             os.mkdir(args.output_dir)
