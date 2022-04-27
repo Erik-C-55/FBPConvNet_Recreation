@@ -194,6 +194,7 @@ if __name__ == '__main__':
     options.trainVal = True
     options.graph = True
     options.max_epochs = 100
+    options.loss = 'MSE'
 
     # options = getUserOptions(argv)
     main(options)
