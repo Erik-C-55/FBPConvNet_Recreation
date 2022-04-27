@@ -1,182 +1,121 @@
-"""
-Copyright (c) Facebook, Inc. and its affiliates.
-
-This source code is licensed under the MIT license found in the
-LICENSE file in the root directory of this source tree.
-"""
-
 import torch
-from torch import nn
-from torch.nn import functional as F
+import torch.nn as nn
 
+# NOTES: This implements the modified U-Net architecture described in [1]. The
+#       code is based heavily off on [2], with slight modifications made to 
+#       match the feature map sizes in [1] and facilitate model viewing in 
+#       Tensorboard.
 
-class Unet(nn.Module):
+# [1] K. H. Jin, M. T. McCann, E. Froustey, and M. Unser, “Deep
+# convolutional neural network for inverse problems in imaging,” IEEE
+# Transactions on Image Processing, vol. 26, no. 9, pp. 4509–4522, 2017.
+
+# [2] https://github.com/amaarora,
+# “U-net: A pytorch implementation in 60 lines of code.”
+# https://amaarora.github.io/2020/09/13/unet.html, 2020.
+# Accessed 27 April 2022.
+    
+class DbleConvBlock(nn.Module):
+    """This class is the smallest building block of UNet - 2 Conv2d layers with
+    BN and ReLU between them. Note that BN and ReLU layers have individual
+    names to facilitate model viewing in Tensorboard
+    
+    Parameters:
+        in_chan: (int) The # of input channels to the 1st convolution
+        out_chan: (int) The # of output channels to the 1st, 2nd convolutions
+        
+    Returns:
+        x: (FloatTensor) The result of the convolutions, BN, and ReLUs
     """
-    PyTorch implementation of a U-Net model.
-
-    O. Ronneberger, P. Fischer, and Thomas Brox. U-net: Convolutional networks
-    for biomedical image segmentation. In International Conference on Medical
-    image computing and computer-assisted intervention, pages 234–241.
-    Springer, 2015.
-    """
-
-    def __init__(
-        self,
-        in_chans: int,
-        out_chans: int,
-        chans: int = 32,
-        num_pool_layers: int = 4,
-        drop_prob: float = 0.0,
-    ):
-        """
-        Args:
-            in_chans: Number of channels in the input to the U-Net model.
-            out_chans: Number of channels in the output to the U-Net model.
-            chans: Number of output channels of the first convolution layer.
-            num_pool_layers: Number of down-sampling and up-sampling layers.
-            drop_prob: Dropout probability.
-        """
+    def __init__(self, in_chan, out_chan):
         super().__init__()
-
-        self.in_chans = in_chans
-        self.out_chans = out_chans
-        self.chans = chans
-        self.num_pool_layers = num_pool_layers
-        self.drop_prob = drop_prob
-
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, drop_prob)])
-        ch = chans
-        for _ in range(num_pool_layers - 1):
-            self.down_sample_layers.append(ConvBlock(ch, ch * 2, drop_prob))
-            ch *= 2
-        self.conv = ConvBlock(ch, ch * 2, drop_prob)
-
-        self.up_conv = nn.ModuleList()
-        self.up_transpose_conv = nn.ModuleList()
-        for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
-            self.up_conv.append(ConvBlock(ch * 2, ch, drop_prob))
-            ch //= 2
-
-        self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
-        self.up_conv.append(
-            nn.Sequential(
-                ConvBlock(ch * 2, ch, drop_prob),
-                nn.Conv2d(ch, self.out_chans, kernel_size=1, stride=1),
-            )
-        )
-
-    def forward(self, image: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            image: Input 4D tensor of shape `(N, in_chans, H, W)`.
-
-        Returns:
-            Output tensor of shape `(N, out_chans, H, W)`.
-        """
-        stack = []
-        output = image
-
-        # apply down-sampling layers
-        for layer in self.down_sample_layers:
-            output = layer(output)
-            stack.append(output)
-            output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
-
-        output = self.conv(output)
-
-        # apply up-sampling layers
-        for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
-            downsample_layer = stack.pop()
-            output = transpose_conv(output)
-
-            # reflect pad on the right/botton if needed to handle odd input dimensions
-            padding = [0, 0, 0, 0]
-            if output.shape[-1] != downsample_layer.shape[-1]:
-                padding[1] = 1  # padding right
-            if output.shape[-2] != downsample_layer.shape[-2]:
-                padding[3] = 1  # padding bottom
-            if torch.sum(torch.tensor(padding)) != 0:
-                output = F.pad(output, padding, "reflect")
-
-            output = torch.cat([output, downsample_layer], dim=1)
-            output = conv(output)
-
-        return output
-
-
-class ConvBlock(nn.Module):
+        
+        # 3x3 conv - zero pad to preserve size (see [1]), bias in BN layer
+        self.conv1 = nn.Conv2d(in_chan, out_chan, 3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_chan)
+        self.relu1 = nn.ReLU(inplace=True)
+        
+        self.conv2 = nn.Conv2d(out_chan, out_chan, 3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_chan)
+        self.relu2 = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x)
+        
+        return x
+        
+class ContractPath(nn.Module):
+    """This class consists of the contracting/decoder side of U-net that
+    increases the number of feature maps while decreasing spatial dimensions.
+    
+    Parameters:
+        chs: (tuple of ints) The number of feature maps at each encoder stage
+        
+    Returns:
+        features: (list of FloatTensor) The feature maps for each skip
+            connection in U-net, starting with the low-channel, high-spatial
+            dimension group of maps and moving to the high-channel, low-spatial
+            dimension group of maps.  To access feature maps at skip connection
+            n, simply index using features[n]
     """
-    A Convolutional Block that consists of two convolution layers each followed by
-    instance normalization, LeakyReLU activation and dropout.
-    """
-
-    def __init__(self, in_chans: int, out_chans: int, drop_prob: float):
-        """
-        Args:
-            in_chans: Number of channels in the input.
-            out_chans: Number of channels in the output.
-            drop_prob: Dropout probability.
-        """
+    def __init__(self, chs=(1,64,128,256,512,1024)):
         super().__init__()
-
-        self.in_chans = in_chans
-        self.out_chans = out_chans
-        self.drop_prob = drop_prob
-
-        self.layers = nn.Sequential(
-            nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(drop_prob),
-            nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(drop_prob),
-        )
-
-    def forward(self, image: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            image: Input 4D tensor of shape `(N, in_chans, H, W)`.
-
-        Returns:
-            Output tensor of shape `(N, out_chans, H, W)`.
-        """
-        return self.layers(image)
-
-
-class TransposeConvBlock(nn.Module):
-    """
-    A Transpose Convolutional Block that consists of one convolution transpose
-    layers followed by instance normalization and LeakyReLU activation.
-    """
-
-    def __init__(self, in_chans: int, out_chans: int):
-        """
-        Args:
-            in_chans: Number of channels in the input.
-            out_chans: Number of channels in the output.
-        """
+        
+        # Contraction path consists of DoubleConvBlocks & MaxPool layers
+        self.contract_blocks = nn.ModuleList(
+            [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+        self.pool_list = nn.ModuleList(
+            [nn.MaxPool2d(2) for i in range(len(chs)-1)])
+        
+    def forward(self, x):
+        # Save features for expansion path
+        features =[]
+        
+        # Pass input through respective DoubleConvBlocks & MaxPool layers
+        for idx in range(len(self.contract_blocks)):
+            x = self.contract_blocks[idx](x)
+            features.append(x)
+            x = self.pool_list[idx](x)
+            
+        return features
+    
+class ExpandPath(nn.Module):
+    """This class consists of the """
+    def __init__(self, chs=(1024,512,256,128,64)):
         super().__init__()
-
-        self.in_chans = in_chans
-        self.out_chans = out_chans
-
-        self.layers = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_chans, out_chans, kernel_size=2, stride=2, bias=False
-            ),
-            nn.InstanceNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-        )
-
-    def forward(self, image: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            image: Input 4D tensor of shape `(N, in_chans, H, W)`.
-
-        Returns:
-            Output tensor of shape `(N, out_chans, H*2, W*2)`.
-        """
-        return self.layers(image)
+        self.upconvs = nn.ModuleList(
+            [nn.ConvTranspose2d(chs[i],chs[i+1],2,2) for i in range(len(chs)-1)])
+        self.expand_blocks = nn.ModuleList(
+            [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+        
+    def forward(self, x, encoder_features):
+        for idx in range(len(self.upconvs)):
+            x = self.upconvs[idx](x)
+            x = torch.cat([x, encoder_features[idx]], dim=1)
+            x = self.expand_blocks[idx](x)
+            
+        return x
+            
+class UNet(nn.Module):
+    def __init__(self, enc_chs=(1,64,128,256,512,1024),
+                 dec_chs=(1024,512,256,128,64), n_class=1):
+    
+        super().__init__()
+        self.encoder = ContractPath(enc_chs)
+        self.decoder = ExpandPath(dec_chs)
+        self.chan_combine = nn.Conv2d(dec_chs[-1], n_class, 1, padding=0)
+        
+    def forward(self, x):
+        enc_features = self.encoder(x)
+        out = self.decoder(enc_features[::-1][0], enc_features[::-1][1:])
+        out = self.chan_combine(out)
+        
+        return out
+        
+        
