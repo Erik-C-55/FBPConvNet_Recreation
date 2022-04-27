@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from sys import argv
 from scipy.stats import mode
+from torchvision.transforms import CenterCrop
 
 # Import functions from this repo
 from ellipseGenerator import genEllipse
@@ -75,8 +76,8 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
         angles = np.linspace(0, np.pi*2, 1000, endpoint=False)
     
         # Calculate detector count (default from torch_radon example)
-        # det_count = int(np.sqrt(2)*im_size + 0.5)
-        det_count = im_size
+        det_count = int(np.sqrt(2)*im_size + 0.5)
+        # det_count = im_size
 
         # Generate Radon transform for full-view parallel-beam CT
         radon = ParallelBeam(det_count=det_count, angles=angles)
@@ -87,6 +88,9 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
         fbp = radon.backprojection(radon.filter_sinogram(sgram,
                                                          filter_name='ramp'))
         
+        # Apply center crop to reduce back to original image size
+        fbp = CenterCrop(im_size)(fbp)
+
         # If displaying, display for index 1
         if idx == 1 and display:
             plt.imshow(sgram, cmap='gray', vmin=0, vmax=1)
@@ -186,8 +190,11 @@ def makeDataset(args, seed=0):
         # Apply Radon transform to this image
         applyRadon(image, samp, subfolder, n_views=[1000,143,50],
                    display=args.display)
-
         
+        # Save original image for comparison (debug only)
+        np.save(os.path.join(args.output_dir,
+                             'im_'+str(samp).zfill(order_samps)), image)
+
 # If this file is run, parse the command-line arguments and the call main()
 if __name__ == '__main__':
     args = getArgs(argv)
