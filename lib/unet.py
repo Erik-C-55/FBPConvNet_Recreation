@@ -147,12 +147,12 @@ class UNet(nn.Module):
         self.chan_combine = nn.Conv2d(dec_chs[-1], n_class, 1, padding=0)
         
     def forward(self, x):
-        # residual = x
+        residual = x
         feat1, feat2, feat3, feat4, feat5 = self.encoder(x)
         out = self.decoder(feat5, feat4, feat3, feat2, feat1)
         out = self.chan_combine(out)
         
-        # out += residual
+        out += residual
         return out
         
         
