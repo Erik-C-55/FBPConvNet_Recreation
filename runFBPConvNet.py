@@ -98,7 +98,7 @@ def main(options, seed = 0):
     gen = seedEverything(seed)
     
     # Instantiate dataloaders, depending on testing or training setting
-    dataLoaders = makeLoaders(options, device, gen)
+    dataLoaders = makeLoaders(options, gen)
     
     if options.trainVal:
         tr_loader = dataLoaders[0]
@@ -153,27 +153,27 @@ def main(options, seed = 0):
     valLoss = 1e5
     minValLoss = 1e5
     
-    # Train the model, if required
-    if options.trainVal:
-        for epoch in range(1, options.max_epochs+1):
-            train(FBPConvNet, tr_loader, epoch, loss, optimizer)
+    # # Train the model, if required
+    # if options.trainVal:
+    #     for epoch in range(1, options.max_epochs+1):
+    #         train(FBPConvNet, tr_loader, epoch, loss, optimizer)
             
-            if (epoch %2 ==0 or epoch == options.max_epochs):
-                valLoss = float(validation(FBPConvNet, val_loader, epoch, loss))
+    #         if (epoch %2 ==0 or epoch == options.max_epochs):
+    #             valLoss = float(validation(FBPConvNet, val_loader, epoch, loss))
                 
-                # Update the max tracker as needed
-                if valLoss < minValLoss:
-                    minValLoss = valLoss
+    #             # Update the max tracker as needed
+    #             if valLoss < minValLoss:
+    #                 minValLoss = valLoss
                 
-                    # Don't worry about saving checkpoints until at
-                    # least 1/5 through training, as it is unlikely 
-                    # that the best model will be achieved before then
-                    if (epoch > options.max_epochs//5):
-                        checkpt_path = os.path.join(logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
-                        torch.save(FBPConvNet.state_dict(), checkpt_path)
+    #                 # Don't worry about saving checkpoints until at
+    #                 # least 1/5 through training, as it is unlikely 
+    #                 # that the best model will be achieved before then
+    #                 if (epoch > options.max_epochs//5):
+    #                     checkpt_path = os.path.join(logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
+    #                     torch.save(FBPConvNet.state_dict(), checkpt_path)
                         
                         
-            scheduler.step()
+    #         scheduler.step()
         
             
 if __name__ == '__main__':
@@ -185,8 +185,8 @@ if __name__ == '__main__':
     # Temp, for debug only
     from argparse import Namespace
     options = Namespace()
-    options.n_ellipse = (25,34)
-    options.workers = 8
+    options.n_ellipse = (5,14)
+    options.workers = 4
     options.full_views = 1000
     options.low_views = 143
     options.n_samps = 500

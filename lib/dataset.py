@@ -13,7 +13,8 @@ class FBPDataset(Dataset):
         self.full_views = full_views
         self.low_views = low_views
         self.transform = transform
-        self.full_views, self.low_views = []
+        self.full_views_list = []
+        self.low_views_list = []
         
         self.obtainImList(n_ellipse, n_samps, mode)
         
@@ -42,18 +43,18 @@ class FBPDataset(Dataset):
             lower = train_Ims + val_Ims + 1
             upper = train_Ims + val_Ims + test_Ims + 1
             
+        print('Lower: ' + str(lower))
+        print('Upper: ' + str(upper))
         for im in range(lower, upper):
             imName = 'im_' + str(im).zfill(4) + '.npy'
-            self.full_views.append(os.path.join(dirName, str(self.full_views) + \
-                                                '_Views', imName))
-            self.low_views.append(os.path.join(dirName, str(self.low_views) + \
-                                                '_Views', imName))
+            self.full_views_list.append(os.path.join(dirName, str(self.full_views) + '_Views', imName))
+            self.low_views_list.append(os.path.join(dirName, str(self.low_views) + '_Views', imName))
         
     def __getitem__(self, index):
         
         # Load ground truth and input
-        full_fbp = np.load(self.full_views[index])
-        low_fbp = np.load(self.low_views[index])
+        full_fbp = np.load(self.full_views_list[index])
+        low_fbp = np.load(self.low_views_list[index])
         
         # Transform ground truth and input
         if self.transform is not None:
@@ -63,7 +64,7 @@ class FBPDataset(Dataset):
         return low_fbp, full_fbp
     
     def __len__(self):
-        return len(self.full_views)
+        return len(self.full_views_list)
        
 if __name__ == '__main__':
     imLoader = DataLoader(FBPDataset('imageData/5_14_Ellipses'), batch_size=1,
