@@ -11,8 +11,7 @@ from scipy.stats import mode
 # Import functions from this repo
 from ellipseGenerator import genEllipse
 
-# Import Parallel Beam Radon transform function
-from torch_radon import Radon
+from torch_radon import ParallelBeam
 
 # TODO: Just make the dataset very rigid, so they always know there will be 1500
 # of each type of image and that they will follow my folder names.  It makes 
@@ -64,10 +63,8 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
     
     # Move images to GPU for speed
     if torch.cuda.is_available():
-        device = torch.device('cuda')
-        print('CUDA is available!')
-        
-    im = torch.FloatTensor(im).to(device)
+        device = torch.device('cuda') 
+        im = torch.FloatTensor(im).to(device)
         
     for views in n_views:
         # Generate name for directory.  If it doesn't exist, create it
@@ -86,8 +83,7 @@ def applyRadon(im, idx, directory, n_views=[1000,143,50], display=False):
         
 
         # Generate Radon transform for full-view parallel-beam CT
-        radon = Radon(im_size, angles, clip_to_circle=False,
-                      det_count=det_count)
+        radon = ParallelBeam(det_count=det_count, angles=angles)
         
         # Calculate full-view sinogram and filtered backprojection
         sgram = radon.forward(im)
