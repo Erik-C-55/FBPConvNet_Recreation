@@ -4,7 +4,9 @@ import torch.nn as nn
 # NOTES: This implements the modified U-Net architecture described in [1]. The
 #       code is based heavily off on [2], with slight modifications made to 
 #       match the feature map sizes in [1] and facilitate model viewing in 
-#       Tensorboard.
+#       Tensorboard. The Tensorboard modifications make the code less Pythonic,
+#       but clean up the model graph in Tensorboard. Since this code implements
+#       a very specific version of U-Net, this loss of flexibility is okay.
 
 # [1] K. H. Jin, M. T. McCann, E. Froustey, and M. Unser, “Deep
 # convolutional neural network for inverse problems in imaging,” IEEE
@@ -67,21 +69,38 @@ class ContractPath(nn.Module):
     def __init__(self, chs=(1,64,128,256,512,1024)):
         super().__init__()
         
-        # Contraction path consists of DoubleConvBlocks & MaxPool layers
-        self.contract_blocks = nn.ModuleList(
-            [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
-        self.pool_list = nn.ModuleList(
-            [nn.MaxPool2d(2) for i in range(len(chs)-1)])
+        self.stage1 = DbleConvBlock(chs[0],chs[1])
+        self.pool1 = nn.MaxPool2d(2)
+        self.stage2 = DbleConvBlock(chs[1],chs[2])
+        self.pool2 = nn.MaxPool2d(2)
+        self.stage3 = DbleConvBlock(chs[2],chs[3])
+        self.pool3 = nn.MaxPool2d(2)
+        self.stage4 = DbleConvBlock(chs[3],chs[4])
+        self.pool4 = nn.MaxPool2d(2)
+        self.stage5 = DbleConvBlock(chs[4],chs[5])
         
     def forward(self, x):
-        # Save features for expansion path
+        # Along the way, save features for expansion path
         features =[]
         
-        # Pass input through respective DoubleConvBlocks & MaxPool layers
-        for idx in range(len(self.contract_blocks)):
-            x = self.contract_blocks[idx](x)
-            features.append(x)
-            x = self.pool_list[idx](x)
+        x = self.stage1(x)
+        features.append(x)
+        x = self.pool1(x)
+        
+        x = self.stage2(x)
+        features.append(x)
+        x = self.pool2(x)
+        
+        x = self.stage3(x)
+        features.append(x)
+        x = self.pool3(x)
+        
+        x = self.stage4(x)
+        features.append(x)
+        x = self.pool4(x)
+        
+        x = self.stage5(x)
+        features.append(x)
             
         return features
     
@@ -89,16 +108,33 @@ class ExpandPath(nn.Module):
     """This class consists of the """
     def __init__(self, chs=(1024,512,256,128,64)):
         super().__init__()
-        self.upconvs = nn.ModuleList(
-            [nn.ConvTranspose2d(chs[i],chs[i+1],2,2) for i in range(len(chs)-1)])
-        self.expand_blocks = nn.ModuleList(
-            [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+        
+        self.upconv1 = nn.ConvTranspose2d(chs[0],chs[1],2,2)
+        self.stage1 = DbleConvBlock(chs[0],chs[1])
+        self.upconv2 = nn.ConvTranspose2d(chs[1],chs[2],2,2)
+        self.stage2 = DbleConvBlock(chs[1],chs[2])
+        self.upconv3 = nn.ConvTranspose2d(chs[2],chs[3],2,2)
+        self.stage3 = DbleConvBlock(chs[2],chs[3])
+        self.upconv4 = nn.ConvTranspose2d(chs[3],chs[4],2,2)
+        self.stage4 = DbleConvBlock(chs[3],chs[4])
         
     def forward(self, x, encoder_features):
-        for idx in range(len(self.upconvs)):
-            x = self.upconvs[idx](x)
-            x = torch.cat([x, encoder_features[idx]], dim=1)
-            x = self.expand_blocks[idx](x)
+        # Along the way, concatenate features from contracting path
+        x = self.upconv1(x)
+        x = torch.cat([x, encoder_features[0]], dim=1)
+        x = self.stage1(x)
+        
+        x = self.upconv2(x)
+        x = torch.cat([x, encoder_features[1]], dim=1)
+        x = self.stage2(x)
+        
+        x = self.upconv3(x)
+        x = torch.cat([x, encoder_features[2]], dim=1)
+        x = self.stage3(x)
+        
+        x = self.upconv4(x)
+        x = torch.cat([x, encoder_features[3]], dim=1)
+        x = self.stage4(x)
             
         return x
             
