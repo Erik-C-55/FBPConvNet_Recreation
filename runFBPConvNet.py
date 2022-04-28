@@ -94,6 +94,7 @@ def train(model, tr_loader, criterion, optimizer, device):
     model.train()
     
     total_loss = 0.0
+    samplesSeen = 0.0
     
     for batch_idx, (low_fbp, full_fbp) in enumerate(tr_loader):
         
@@ -118,14 +119,20 @@ def train(model, tr_loader, criterion, optimizer, device):
         optimizer.step()
         
         # Track running_loss
-        total_loss += loss.item()
+        # To handle the gradient clipping, I still want mean loss reduction.
+        # For tracking purposes, since I have different batch sizes, I want
+        # to sum them
+        samplesSeen += len(recon)
+        total_loss += (loss.item() * samplesSeen)
         
         # Debug only
         if batch_idx ==0:
             print('loss.item(): ' + str(loss.item()))
             print('total_loss: ' + str(total_loss))
     
-    # Loss is aready averaged per sample (reduction == 'mean')
+    # Average total loss across samples
+    total_loss = total_loss / samplesSeen
+    
     print('Average Training Loss Per Sample: {:.4f}'.format(total_loss))
     
     return total_loss
@@ -136,6 +143,7 @@ def validation(model, val_loader, criterion, device):
     model.eval()
     
     total_loss = 0.0
+    samplesSeen = 0.0
     
     # Stop updating gradients for validation
     with torch.no_grad():
@@ -151,14 +159,17 @@ def validation(model, val_loader, criterion, device):
             loss = criterion(recon, full_fbp)
             
             # Track running_loss
-            total_loss += loss.item()
+            samplesSeen += len(recon)
+            total_loss += (loss.item() * samplesSeen)
             
             # Debug only
             if batch_idx ==0:
                 print('loss.item(): ' + str(loss.item()))
                 print('total_loss: ' + str(total_loss))
         
-        # Loss is aready averaged per sample (reduction == 'mean')
+        # Average total loss across samples
+        total_loss = total_loss/samplesSeen
+        
         print('Average Validation Loss Per Sample: {:.4f}'.format(total_loss))
         
         return total_loss
