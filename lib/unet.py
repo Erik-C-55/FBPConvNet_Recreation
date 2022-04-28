@@ -135,3 +135,9 @@ class UNet(nn.Module):
         return out
         
         
+if __name__ == '__main__':
+    unet = UNet()
+    x = torch.randn(4, 1, 512, 512)
+    
+    print('Model Input Size: ' + str(x.shape))
+    print('Model Output Size: ' + str(unet(x).shape))

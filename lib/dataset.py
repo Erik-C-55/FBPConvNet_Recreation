@@ -74,17 +74,15 @@ if __name__ == '__main__':
                          shuffle=False, num_workers=4)
     
     low_fbp, full_fbp = iter(imLoader).next()
-
-    print(low_fbp.shape)
     
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4.5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4.5))
     
-    # ax1.imshow(low_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    # ax1.title('Low-view FBP')
+    ax1.imshow(low_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    ax1.title('Low-view FBP')
     
-    # ax2.imshow(full_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    # ax2.title('Full-view FBP')
+    ax2.imshow(full_fbp, cmap=plt.cm.Greys_r, vmin=0, vmax=1)
+    ax2.title('Full-view FBP')
     
-    # fig.tight_layout()
-    # plt.show()
+    fig.tight_layout()
+    plt.show()
     

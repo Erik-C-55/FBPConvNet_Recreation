@@ -88,11 +88,90 @@ def makeLoaders(options, gen):
         
     return dataLoaders
 
+def train(model, tr_loader, criterion, optimizer, device):
+    
+    # Set the model to training mode
+    model.train()
+    
+    total_loss = 0.0
+    samplesSeen = 0.0
+    
+    for batch_idx, (low_fbp, full_fbp) in enumerate(tr_loader):
+        
+        # Zero the gradients
+        optimizer.zero_grad()
+        
+        # Move inputs/labels to GPU
+        low_fbp.to(device)
+        full_fbp.to(device)
+        
+        # Reconstruct low-view images and compare to full-view images
+        recon = model(low_fbp)
+        loss = criterion(recon, full_fbp)
+        
+        # Backprop and optimzer step
+        loss.backward()
+        optimizer.step()
+        
+        # Track running_loss
+        total_loss += loss.item()
+        samplesSeen += len(recon)
+        
+        # Debug only
+        if batch_idx ==0:
+            print('loss.item(): ' + str(loss.item()))
+            print('total_loss: ' + str(total_loss))
+            print('samplesSeen: ' + str(samplesSeen))
+        
+    total_loss = total_loss/samplesSeen
+    
+    print('Average Training Loss Per Sample: {:.4f}'.format(total_loss))
+    
+    return total_loss
+        
+def validation(model, val_loader, criterion, device):
+    
+    # Set model to eval mode
+    model.eval()
+    
+    total_loss = 0.0
+    samplesSeen = 0.0
+    
+    # Stop updating gradients for validation
+    with torch.no_grad():
+        
+        for batch_idx, low_fbp, full_fbp in enumerate(val_loader):
+            
+            # Move inputs/labels to GPU
+            low_fbp.to(device)
+            full_fbp.to(device)
+            
+            # Reconstruct low-view images and compare to full-view images
+            recon = model(low_fbp)
+            loss = criterion(recon, full_fbp)
+            
+            # Track running_loss
+            total_loss += loss.item()
+            samplesSeen += len(recon)
+            
+            # Debug only
+            if batch_idx ==0:
+                print('loss.item(): ' + str(loss.item()))
+                print('total_loss: ' + str(total_loss))
+                print('samplesSeen: ' + str(samplesSeen))
+            
+        total_loss = total_loss/samplesSeen
+        
+        print('Average Validation Loss Per Sample: {:.4f}'.format(total_loss))
+        
+        return total_loss
     
 def main(options, seed = 0):
     
     if torch.cuda.is_available():
         device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
     
     # Seed things for reproducibility
     gen = seedEverything(seed)
@@ -131,8 +210,6 @@ def main(options, seed = 0):
         writer.add_image("'Full-view' FBP", make_grid(full_fbp, pad_value=1.0,
                                                    normalize=False,
                                                    nrow=options.batch//2))
-        # TIP: Debugging only
-        writer.close()
         
     # Move the model to the GPU
     FBPConvNet = FBPConvNet.to(device)
@@ -153,27 +230,39 @@ def main(options, seed = 0):
     valLoss = 1e5
     minValLoss = 1e5
     
-    # # Train the model, if required
-    # if options.trainVal:
-    #     for epoch in range(1, options.max_epochs+1):
-    #         train(FBPConvNet, tr_loader, epoch, loss, optimizer)
+    # Train the model, if required
+    if options.trainVal:
+        for epoch in range(1, options.max_epochs+1):
+            print('---- Epoch ' + str(epoch) + ' ----')
+            trLoss = float(train(FBPConvNet, tr_loader, loss, optimizer, device))
             
-    #         if (epoch %2 ==0 or epoch == options.max_epochs):
-    #             valLoss = float(validation(FBPConvNet, val_loader, epoch, loss))
+            # Check against validation images every 2nd epoch
+            if (epoch %2 ==0 or epoch == options.max_epochs):
+                valLoss = float(validation(FBPConvNet, val_loader, loss, device))
                 
-    #             # Update the max tracker as needed
-    #             if valLoss < minValLoss:
-    #                 minValLoss = valLoss
+                # Update the max tracker as needed
+                if valLoss < minValLoss:
+                    minValLoss = valLoss
                 
-    #                 # Don't worry about saving checkpoints until at
-    #                 # least 1/5 through training, as it is unlikely 
-    #                 # that the best model will be achieved before then
-    #                 if (epoch > options.max_epochs//5):
-    #                     checkpt_path = os.path.join(logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
-    #                     torch.save(FBPConvNet.state_dict(), checkpt_path)
+                    # Don't worry about saving checkpoints until at
+                    # least 1/5 through training, as it is unlikely 
+                    # that the best model will be achieved before then
+                    if (epoch > options.max_epochs//5):
+                        checkpt_path = os.path.join(logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
+                        torch.save(FBPConvNet.state_dict(), checkpt_path)
                         
-                        
-    #         scheduler.step()
+            # Log info to SummaryWriter
+            writer.add_scalars('Losses',{'Tr_Loss': trLoss, 'Val_Loss': valLoss},
+                               epoch)
+            scheduler.step()
+    # TODO: Implement 'else' here
+    
+    hparam_dict = vars(options)
+    metric_dict = {'tr ' + options.loss + ' loss': trLoss,
+                   'val ' + options.loss + ' loss': valLoss}
+    
+    writer.add_hparams(hparam_dict=hparam_dict, metric_dict=metric_dict)
+    writer.close()
         
             
 if __name__ == '__main__':
@@ -193,7 +282,7 @@ if __name__ == '__main__':
     options.batch = 4
     options.trainVal = True
     options.graph = True
-    options.max_epochs = 100
+    options.max_epochs = 10
     options.loss = 'MSE'
 
     # options = getUserOptions(argv)
