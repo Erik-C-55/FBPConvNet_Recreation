@@ -88,13 +88,12 @@ def makeLoaders(options, gen):
         
     return dataLoaders
 
-def train(model, tr_loader, criterion, optimizer, device):
+def train(model, tr_loader, criterion, optimizer, device, batch_size):
     
     # Set the model to training mode
     model.train()
     
     total_loss = 0.0
-    samplesSeen = 0.0
     
     for batch_idx, (low_fbp, full_fbp) in enumerate(tr_loader):
         
@@ -111,38 +110,30 @@ def train(model, tr_loader, criterion, optimizer, device):
         
         # Backprop
         loss.backward()
-               
-        # Track running_loss
-        # To handle the gradient clipping, I still want mean loss reduction.
-        # For tracking purposes, since I have different batch sizes, I want
-        # to sum them
-        samplesSeen += len(recon)
-        total_loss += (loss.item() * samplesSeen)
+        
+        # Loss is averaged across batch. Adjust scaling for small batches
+        prop_full_batch = float(len(recon))/float(batch_size)
+        total_loss += (loss.item() * prop_full_batch)
         
         # Clip the gradients, as suggested in the paper
         torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.01)
 
         # Optimizer step
         optimizer.step()
-
-        # Debug only
-        if batch_idx ==0:
-            print('total_loss: ' + str(total_loss))
     
-    # Average total loss across samples
-    total_loss = total_loss / samplesSeen
+    # Average total loss across batches, including the small last batch
+    total_loss = total_loss / (batch_idx + prop_full_batch)
     
     print('Average Training Loss Per Sample: {:.4f}'.format(total_loss))
     
     return total_loss
         
-def validation(model, val_loader, criterion, device):
+def validation(model, val_loader, criterion, device, batch_size):
     
     # Set model to eval mode
     model.eval()
     
     total_loss = 0.0
-    samplesSeen = 0.0
     
     # Stop updating gradients for validation
     with torch.no_grad():
@@ -157,16 +148,16 @@ def validation(model, val_loader, criterion, device):
             recon = model(low_fbp)
             loss = criterion(recon, full_fbp)
             
-            # Track running_loss
-            samplesSeen += len(recon)
-            total_loss += (loss.item() * samplesSeen)
+            # Loss is averaged across batch. Adjust scaling for small batches
+            prop_full_batch = float(len(recon))/float(batch_size)
+            total_loss += (loss.item() * prop_full_batch)
             
             # Debug only
             if batch_idx ==0:
                 print('total_loss: ' + str(total_loss))
         
-        # Average total loss across samples
-        total_loss = total_loss/samplesSeen
+        # Average total loss across batches, including the small last batch
+        total_loss = total_loss / (batch_idx + prop_full_batch)
         
         print('Average Validation Loss Per Sample: {:.4f}'.format(total_loss))
         
@@ -250,11 +241,13 @@ def main(options, seed = 0):
     if options.trainVal:
         for epoch in range(1, options.max_epochs+1):
             print('---- Epoch ' + str(epoch) + ' ----')
-            trLoss = float(train(FBPConvNet, tr_loader, loss, optimizer, device))
+            trLoss = float(train(FBPConvNet, tr_loader, loss, optimizer, device,
+                                 options.batch))
             
             # Check against validation images every 2nd epoch
             if (epoch %2 ==0 or epoch == options.max_epochs):
-                valLoss = float(validation(FBPConvNet, val_loader, loss, device))
+                valLoss = float(validation(FBPConvNet, val_loader, loss, device,
+                                           options.batch))
                 
                 # Update the max tracker as needed
                 if valLoss < minValLoss:
