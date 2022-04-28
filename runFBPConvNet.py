@@ -94,7 +94,6 @@ def train(model, tr_loader, criterion, optimizer, device):
     model.train()
     
     total_loss = 0.0
-    samplesSeen = 0.0
     
     for batch_idx, (low_fbp, full_fbp) in enumerate(tr_loader):
         
@@ -109,22 +108,24 @@ def train(model, tr_loader, criterion, optimizer, device):
         recon = model(low_fbp)
         loss = criterion(recon, full_fbp)
         
-        # Backprop and optimzer step
+        # Backprop
         loss.backward()
+        
+        # Clip the gradients, as suggested in the paper
+        torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.01)
+        
+        # Optimizer step
         optimizer.step()
         
         # Track running_loss
         total_loss += loss.item()
-        samplesSeen += len(recon)
         
         # Debug only
         if batch_idx ==0:
             print('loss.item(): ' + str(loss.item()))
             print('total_loss: ' + str(total_loss))
-            print('samplesSeen: ' + str(samplesSeen))
-        
-    total_loss = total_loss/samplesSeen
     
+    # Loss is aready averaged per sample (reduction == 'mean')
     print('Average Training Loss Per Sample: {:.4f}'.format(total_loss))
     
     return total_loss
@@ -135,7 +136,6 @@ def validation(model, val_loader, criterion, device):
     model.eval()
     
     total_loss = 0.0
-    samplesSeen = 0.0
     
     # Stop updating gradients for validation
     with torch.no_grad():
@@ -152,16 +152,13 @@ def validation(model, val_loader, criterion, device):
             
             # Track running_loss
             total_loss += loss.item()
-            samplesSeen += len(recon)
             
             # Debug only
             if batch_idx ==0:
                 print('loss.item(): ' + str(loss.item()))
                 print('total_loss: ' + str(total_loss))
-                print('samplesSeen: ' + str(samplesSeen))
-            
-        total_loss = total_loss/samplesSeen
         
+        # Loss is aready averaged per sample (reduction == 'mean')
         print('Average Validation Loss Per Sample: {:.4f}'.format(total_loss))
         
         return total_loss
