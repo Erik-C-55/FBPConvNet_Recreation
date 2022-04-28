@@ -210,12 +210,22 @@ def main(options, seed = 0):
             low_fbp, full_fbp = iter(test_loader).next()
             
         writer.add_graph(FBPConvNet, low_fbp)
-        writer.add_image('Low-View FBP', make_grid(low_fbp, pad_value=1.0,
-                                                   normalize=False,
-                                                   nrow=options.batch//2))
-        writer.add_image("'Full-view' FBP", make_grid(full_fbp, pad_value=1.0,
-                                                   normalize=False,
-                                                   nrow=options.batch//2))
+        
+        # NOTE: Using 'normalize' here shows the low-view images at low
+        # contrast, making it difficult to see the artifacts introduced from 
+        # low-view reconstruction.  Going without normalize introduces salt &
+        # pepper noise in the image where values are too high or too low. (The
+        # noise doesn't exist in the tensors themselves, just the rendering.)
+        # Applying torch.clamp and setting 'normalize' to false boosts the
+        # contrast of the low view images for viewing without the noise.
+        writer.add_image('Low-View FBP (Contrast Adjusted)',
+                         make_grid(torch.clamp(low_fbp, min=0.0, max=1.0),
+                                   pad_value=1.0, normalize=False,
+                                   nrow=options.batch//2))
+        writer.add_image("'Full-view' FBP (Contrast Adjusted)",
+                         make_grid(torch.clamp(full_fbp, min=0.0, max=1.0),
+                                   pad_value=1.0, normalize=False,
+                                   nrow=options.batch//2))
         
     # Move the model to the GPU
     FBPConvNet = FBPConvNet.to(device)
