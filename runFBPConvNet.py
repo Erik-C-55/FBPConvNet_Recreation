@@ -111,13 +111,7 @@ def train(model, tr_loader, criterion, optimizer, device):
         
         # Backprop
         loss.backward()
-        
-        # Clip the gradients, as suggested in the paper
-        torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.01)
-        
-        # Optimizer step
-        optimizer.step()
-        
+               
         # Track running_loss
         # To handle the gradient clipping, I still want mean loss reduction.
         # For tracking purposes, since I have different batch sizes, I want
@@ -125,9 +119,14 @@ def train(model, tr_loader, criterion, optimizer, device):
         samplesSeen += len(recon)
         total_loss += (loss.item() * samplesSeen)
         
+        # Clip the gradients, as suggested in the paper
+        torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.01)
+
+        # Optimizer step
+        optimizer.step()
+
         # Debug only
         if batch_idx ==0:
-            print('loss.item(): ' + str(loss.item()))
             print('total_loss: ' + str(total_loss))
     
     # Average total loss across samples
@@ -164,7 +163,6 @@ def validation(model, val_loader, criterion, device):
             
             # Debug only
             if batch_idx ==0:
-                print('loss.item(): ' + str(loss.item()))
                 print('total_loss: ' + str(total_loss))
         
         # Average total loss across samples
