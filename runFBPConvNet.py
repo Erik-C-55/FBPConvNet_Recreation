@@ -102,8 +102,8 @@ def train(model, tr_loader, criterion, optimizer, device):
         optimizer.zero_grad()
         
         # Move inputs/labels to GPU
-        low_fbp.to(device)
-        full_fbp.to(device)
+        low_fbp = low_fbp.to(device)
+        full_fbp = full_fbp.to(device)
         
         # Reconstruct low-view images and compare to full-view images
         recon = model(low_fbp)
@@ -140,11 +140,11 @@ def validation(model, val_loader, criterion, device):
     # Stop updating gradients for validation
     with torch.no_grad():
         
-        for batch_idx, low_fbp, full_fbp in enumerate(val_loader):
+        for batch_idx, (low_fbp, full_fbp) in enumerate(val_loader):
             
             # Move inputs/labels to GPU
-            low_fbp.to(device)
-            full_fbp.to(device)
+            low_fbp = low_fbp.to(device)
+            full_fbp = full_fbp.to(device)
             
             # Reconstruct low-view images and compare to full-view images
             recon = model(low_fbp)
@@ -258,6 +258,9 @@ def main(options, seed = 0):
     # TODO: Implement 'else' here
     
     hparam_dict = vars(options)
+    # Convert n_ellipses back to a string
+    hparam_dict['n_ellipse'] = str(hparam_dict['n_ellipse'])
+    
     metric_dict = {'tr ' + options.loss + ' loss': trLoss,
                    'val ' + options.loss + ' loss': valLoss}
     
@@ -279,7 +282,7 @@ if __name__ == '__main__':
     options.full_views = 1000
     options.low_views = 143
     options.n_samps = 500
-    options.batch = 4
+    options.batch = 8
     options.trainVal = True
     options.graph = True
     options.max_epochs = 10
