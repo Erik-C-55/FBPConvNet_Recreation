@@ -277,17 +277,27 @@ if __name__ == '__main__':
     # Temp, for debug only
     from argparse import Namespace
     options = Namespace()
-    options.n_ellipse = (5,14)
+    
+    # Fix constant options
+    options.n_ellipse = (15,24)
     options.workers = 4
     options.full_views = 1000
-    options.low_views = 143
-    options.n_samps = 500
     options.batch = 8
     options.trainVal = True
-    options.graph = True
-    options.max_epochs = 10
-    options.loss = 'MSE'
+    options.max_epochs = 100
+    options.loss = 'L1'
+    
+    # Iterate over other options being explored
+    for lviews in [143,50]:
+        for samps in [500, 1000]:
+            
+            options.low_views = lviews
+            options.n_samps = samps
+            
+            # Only add graph if there are 500 samples
+            if samps == 500:
+                options.graph = True
 
     # options = getUserOptions(argv)
-    main(options)
+            main(options)
     
