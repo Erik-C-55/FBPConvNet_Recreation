@@ -64,16 +64,26 @@ class ContractPath(nn.Module):
             dimension group of maps.  To access feature maps at skip connection
             n, simply index using features[n]
     """
-    def __init__(self, chs=(1,64,128,256,512,1024)):
+    def __init__(self, chs=(1,64,64,128,256,512,1024)):
         super().__init__()
-        
+       
+        # Add extra conv at beginning to match [1]
+        self.conv1 = nn.Conv2d(chs[0], chs[1],3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(chs[1])
+        self.relu1 = nn.ReLU(inplace=True)
+
         # Contraction path consists of DoubleConvBlocks & MaxPool layers
         self.contract_blocks = nn.ModuleList(
-            [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+            [DbleConvBlock(chs[i], chs[i+1]) for i in range(1,len(chs)-1)])
         self.pool_list = nn.ModuleList(
-            [nn.MaxPool2d(2) for i in range(len(chs)-1)])
+            [nn.MaxPool2d(2) for i in range(1,len(chs)-1)])
         
     def forward(self, x):
+        # Pass through initial conv
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+
         # Save features for expansion path
         features =[]
         
@@ -103,7 +113,7 @@ class ExpandPath(nn.Module):
         return x
             
 class UNet(nn.Module):
-    def __init__(self, enc_chs=(1,64,128,256,512,1024),
+    def __init__(self, enc_chs=(1,64,64,128,256,512,1024),
                  dec_chs=(1024,512,256,128,64), n_class=1):
     
         super().__init__()
