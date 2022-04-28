@@ -144,6 +144,16 @@ def makeDataset(args, seed=0):
     # Calculate the number of digits to use for file names
     order_samps = int(np.log10(args.samples)) + 1
     
+    # If necessary, create output directory & subfolder
+    subfolder = os.path.join(args.output_dir, str(args.lower_bound) + '_' + \
+                             str(args.upper_bound - 1) + '_Images')
+        
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
+    
+    if not os.path.isdir(subfolder):
+        os.mkdir(subfolder)
+    
     # For each image that needs generating
     for samp in range(1, args.samples+1):
         image = np.zeros((args.res,args.res), dtype=np.single)
@@ -170,16 +180,6 @@ def makeDataset(args, seed=0):
         
         # Clip the image to lie between 0 and 1 for the radon transform library
         image = np.clip(image, 0.0, 1.0)
-
-        # If necessary, create output directory & subfolder
-        subfolder = os.path.join(args.output_dir, str(args.lower_bound) + '_' + \
-                                 str(args.upper_bound - 1) + '_Images')
-            
-        if not os.path.isdir(args.output_dir):
-            os.mkdir(args.output_dir)
-        
-        if not os.path.isdir(subfolder):
-            os.mkdir(subfolder)
             
         # Apply Radon transform to this image
         applyRadon(image, samp, subfolder, order_samps, display=args.display)
