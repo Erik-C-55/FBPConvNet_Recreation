@@ -228,7 +228,7 @@ def main(options, seed = 0):
     optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
                                 lr=lr, momentum=0.99)
     
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.9886)
     
     valLoss = 0.05
     minValLoss = 0.05
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     options.full_views = 1000
     options.batch = 8
     options.trainVal = True
-    options.max_epochs = 100
+    options.max_epochs = 200
     options.loss = 'L1'
     
     # Iterate over other options being explored
