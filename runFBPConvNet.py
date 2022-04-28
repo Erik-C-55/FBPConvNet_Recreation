@@ -227,8 +227,8 @@ def main(options, seed = 0):
     
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
     
-    valLoss = 1e5
-    minValLoss = 1e5
+    valLoss = 0.5
+    minValLoss = 0.5
     
     # Train the model, if required
     if options.trainVal:
