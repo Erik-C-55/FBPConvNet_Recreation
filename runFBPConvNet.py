@@ -124,7 +124,7 @@ def train(model, tr_loader, criterion, optimizer, device, batch_size):
     # Average total loss across batches, including the small last batch
     total_loss = total_loss / (batch_idx + prop_full_batch)
     
-    print('Average Training Loss Per Sample: {:.4f}'.format(total_loss))
+    print('Average Training Loss Per Sample: {:.6f}'.format(total_loss))
     
     return total_loss
         
@@ -159,7 +159,7 @@ def validation(model, val_loader, criterion, device, batch_size):
         # Average total loss across batches, including the small last batch
         total_loss = total_loss / (batch_idx + prop_full_batch)
         
-        print('Average Validation Loss Per Sample: {:.4f}'.format(total_loss))
+        print('Average Validation Loss Per Sample: {:.6f}'.format(total_loss))
         
         return total_loss
     
