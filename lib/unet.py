@@ -97,6 +97,8 @@ class ExpandPath(nn.Module):
     def forward(self, x, encoder_features):
         for idx in range(len(self.upconvs)):
             x = self.upconvs[idx](x)
+            # TIP: Note that no cropping is necessary, since the feature maps
+            # are the same dimensions spatially
             x = torch.cat([x, encoder_features[idx]], dim=1)
             x = self.expand_blocks[idx](x)
             
@@ -114,6 +116,7 @@ class UNet(nn.Module):
     def forward(self, x):
         residual = x
         enc_features = self.encoder(x)
+        # Reverse the order of the features list, use 0 as x, others as skips
         out = self.decoder(enc_features[::-1][0], enc_features[::-1][1:])
         out = self.chan_combine(out)
         
