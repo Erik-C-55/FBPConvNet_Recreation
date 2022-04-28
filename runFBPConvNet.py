@@ -287,7 +287,7 @@ if __name__ == '__main__':
     options = Namespace()
     
     # Fix constant options
-    options.n_ellipse = (15,24)
+    options.n_ellipse = (25,34)
     options.workers = 4
     options.full_views = 1000
     options.batch = 8
@@ -296,8 +296,8 @@ if __name__ == '__main__':
     options.loss = 'L1'
     
     # Iterate over other options being explored
-    for lviews in [143,50]:
-        for samps in [500, 1000]:
+    for lviews in [50]:
+        for samps in [500]:
             
             options.low_views = lviews
             options.n_samps = samps
