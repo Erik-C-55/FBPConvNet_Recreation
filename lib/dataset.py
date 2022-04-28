@@ -22,7 +22,7 @@ class FBPDataset(Dataset):
     def obtainImList(self, n_ellipse, n_samps, mode):
         
         # Name of directory where images are stored
-        dirName = 'imageData/' + str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images'
+        dirName = os.path.join('imageData',str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images')
         
         # Since the images are randomly generated anyway, the training set can
         # simply be the first 90% of images, with the next 5% for validation &
@@ -70,7 +70,7 @@ class FBPDataset(Dataset):
         return len(self.full_views_list)
        
 if __name__ == '__main__':
-    imLoader = DataLoader(FBPDataset(n_ellipse=(5,14)), batch_size=4,
+    imLoader = DataLoader(FBPDataset(n_ellipse=(25,34)), batch_size=4,
                          shuffle=False, num_workers=4)
     
     low_fbp, full_fbp = iter(imLoader).next()

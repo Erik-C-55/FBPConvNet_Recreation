@@ -286,7 +286,7 @@ if __name__ == '__main__':
     
     # Fix constant options
     options.n_ellipse = (25,34)
-    options.workers = 4
+    options.workers = 8
     options.full_views = 1000
     options.batch = 8
     options.trainVal = True
