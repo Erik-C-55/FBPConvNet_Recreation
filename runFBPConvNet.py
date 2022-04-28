@@ -205,7 +205,7 @@ def main(options, seed = 0):
     # If the user wants to add the model graph and sample images to Tensorboard
     if options.graph:
         if options.trainVal:
-            low_fbp, full_fbp = iter(val_loader).next()
+            tr_low_fbp, tr_full_fbp = iter(tr_loader).next()
         else:
             low_fbp, full_fbp = iter(test_loader).next()
             
