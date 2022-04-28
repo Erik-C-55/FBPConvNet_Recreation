@@ -151,10 +151,6 @@ def validation(model, val_loader, criterion, device, batch_size):
             # Loss is averaged across batch. Adjust scaling for small batches
             prop_full_batch = float(len(recon))/float(batch_size)
             total_loss += (loss.item() * prop_full_batch)
-            
-            # Debug only
-            if batch_idx ==0:
-                print('total_loss: ' + str(total_loss))
         
         # Average total loss across batches, including the small last batch
         total_loss = total_loss / (batch_idx + prop_full_batch)
