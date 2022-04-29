@@ -289,7 +289,7 @@ if __name__ == '__main__':
     options.full_views = 1000
     options.batch = 8
     options.trainVal = True
-    options.max_epochs = 200
+    options.max_epochs = 100
     options.loss = 'L1'
     
     # Iterate over other options being explored
