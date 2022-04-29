@@ -284,7 +284,6 @@ if __name__ == '__main__':
     options = Namespace()
     
     # Fix constant options
-    options.n_ellipse = (25,34)
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
@@ -293,16 +292,21 @@ if __name__ == '__main__':
     options.loss = 'L1'
     
     # Iterate over other options being explored
-    for lviews in [50]:
-        for samps in [500]:
-            
-            options.low_views = lviews
-            options.n_samps = samps
-            
-            # Only add graph if there are 500 samples
-            if samps == 500:
-                options.graph = True
-
-    # options = getUserOptions(argv)
-            main(options)
+    for n_ellipse in [(5,14),(15,24),(25,34)]:
+        for lviews in [50,143]:
+            for samps in [500,1000]:
+                
+                if n_ellipse[0] == 25 and lviews == 50 and samps == 500:
+                    break
+                else:
+                    options.n_ellipse = n_ellipse
+                    options.low_views = lviews
+                    options.n_samps = samps
+                
+                    # Only add graph if there are 500 samples
+                    if samps == 500:
+                        options.graph = True
+    
+                    # options = getUserOptions(argv)
+                    main(options)
     
