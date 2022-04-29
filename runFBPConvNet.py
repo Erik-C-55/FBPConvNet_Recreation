@@ -276,6 +276,7 @@ def main(options, seed = 0):
 if __name__ == '__main__':
     
     # Handle torch backends for reproducibility
+    torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     
