@@ -297,17 +297,14 @@ if __name__ == '__main__':
         for lviews in [50,143]:
             for samps in [500,1000]:
                 
-                if n_ellipse[0] == 25 and lviews == 50 and samps == 500:
-                    break
-                else:
-                    options.n_ellipse = n_ellipse
-                    options.low_views = lviews
-                    options.n_samps = samps
+                options.n_ellipse = n_ellipse
+                options.low_views = lviews
+                options.n_samps = samps
                 
-                    # Only add graph if there are 500 samples
-                    if samps == 500:
-                        options.graph = True
+                # Only add graph if there are 500 samples
+                if samps == 500:
+                    options.graph = True
     
-                    # options = getUserOptions(argv)
-                    main(options)
+                # options = getUserOptions(argv)
+                main(options)
     
