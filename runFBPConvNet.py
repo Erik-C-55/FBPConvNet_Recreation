@@ -293,18 +293,18 @@ if __name__ == '__main__':
     options.loss = 'L1'
     
     # Iterate over other options being explored
-    for n_ellipse in [(5,14),(15,24),(25,34)]:
-        for lviews in [50,143]:
-            for samps in [500,1000]:
+    #for n_ellipse in [(5,14),(15,24),(25,34)]:
+        #for lviews in [50,143]:
+            #for samps in [500,1000]:
                 
-                options.n_ellipse = n_ellipse
-                options.low_views = lviews
-                options.n_samps = samps
+    options.n_ellipse = (25,34)
+    options.low_views = 143
+    options.n_samps = 500
                 
-                # Only add graph if there are 500 samples
-                if samps == 500:
-                    options.graph = True
+    # Only add graph if there are 500 samples
+    if samps == 500:
+        options.graph = True
     
-                # options = getUserOptions(argv)
-                main(options)
+    # options = getUserOptions(argv)
+    main(options)
     
