@@ -228,7 +228,7 @@ def main(options, seed = 0):
     optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
                                 lr=lr, momentum=0.99)
     
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.9886)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
     
     valLoss = 0.09
     minValLoss = 0.09
@@ -276,6 +276,7 @@ def main(options, seed = 0):
 if __name__ == '__main__':
     
     # Handle torch backends for reproducibility
+    torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     
@@ -284,25 +285,26 @@ if __name__ == '__main__':
     options = Namespace()
     
     # Fix constant options
-    options.n_ellipse = (25,34)
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
     options.trainVal = True
-    options.max_epochs = 200
+    options.max_epochs = 100
     options.loss = 'L1'
     
     # Iterate over other options being explored
-    for lviews in [50]:
-        for samps in [500]:
-            
-            options.low_views = lviews
-            options.n_samps = samps
-            
-            # Only add graph if there are 500 samples
-            if samps == 500:
-                options.graph = True
-
+    #for n_ellipse in [(5,14),(15,24),(25,34)]:
+        #for lviews in [50,143]:
+            #for samps in [500,1000]:
+                
+    options.n_ellipse = (25,34)
+    options.low_views = 143
+    options.n_samps = 500
+                
+    # Only add graph if there are 500 samples
+    if samps == 500:
+        options.graph = True
+    
     # options = getUserOptions(argv)
-            main(options)
+    main(options)
     
