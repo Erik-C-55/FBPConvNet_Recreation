@@ -228,7 +228,7 @@ def main(options, seed = 0):
     optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
                                 lr=lr, momentum=0.99)
     
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.9886)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
     
     valLoss = 0.09
     minValLoss = 0.09
