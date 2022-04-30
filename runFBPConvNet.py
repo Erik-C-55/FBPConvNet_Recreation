@@ -255,7 +255,8 @@ def main(options):
         else:
             low_fbp, full_fbp = iter(test_loader).next()
             
-        writer.add_graph(FBPConvNet, low_fbp)
+        # Turned off after the first time, now that I have a model graph
+        # writer.add_graph(FBPConvNet, low_fbp)
         
         writer.add_image('Low-View FBP (Model Input)',
                          make_grid(low_fbp, pad_value=0.0, normalize=False,
@@ -329,7 +330,9 @@ def main(options):
             model_dict = FBPConvNet.state_dict()
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
 
-        print("Using file " + options.pretrained + ' to load ' + str(len(pretrained_dict)) + ' of the ' + str(len(model_dict)) + ' tensors of parameters in the model')
+        print("Using file " + options.pretrained + ' to load ' + \
+              str(len(pretrained_dict)) + ' of the ' + str(len(model_dict)) + \
+                  ' tensors of parameters in the model')
  
         model_dict.update(pretrained_dict)
         FBPConvNet.load_state_dict(model_dict)
@@ -342,7 +345,7 @@ def main(options):
                                                                    device)
         
         # Add the reconstructed image to tensorboard files
-        writer.add_image("UNet Output Image",
+        writer.add_image("UNet Output Image. MSE: {:.4f}. PSNR: {:.4f}".format(unet_mse[0], unet_psnr),
                          make_grid(sampleRecon, pad_value=0.0, normalize=False,
                                    nrow=options.batch//2))
         
