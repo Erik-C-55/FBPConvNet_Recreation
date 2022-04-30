@@ -55,9 +55,14 @@ class FBPDataset(Dataset):
         full_fbp = torch.from_numpy(np.load(self.full_views_list[index]))
         low_fbp = torch.from_numpy(np.load(self.low_views_list[index]))
        
-        # Expand tensors to preserve channel dimension
-        full_fbp = full_fbp.unsqueeze(dim=0)
-        low_fbp = low_fbp.unsqueeze(dim=0)
+        # Expand tensors to preserve channel dimension. Note that skimage 
+        # radon/iradon generated pixel intensities outside the original range
+        # (0.0, 1.0), especially along the borders, where the intensity is very
+        # high ~4.1.  Since these values are unrealistic and the goal is not to
+        # have the network reduce the loss simply by reducing the value of the
+        # border pixels, clamp the inputs to the range [0.0, 1.0].
+        full_fbp = torch.clamp(full_fbp.unsqueeze(dim=0), min=0.0, max=1.0)
+        low_fbp = torch.clamp(low_fbp.unsqueeze(dim=0), min=0.0, max=1.0)
         
         # Transform ground truth and input. To ensure ground truth and low-view
         # images receive the same transformation, first combine them along a 
@@ -87,17 +92,17 @@ if __name__ == '__main__':
     
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
     
-    ax1.imshow(low_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax1.set_title('Low-view FBP 1')
+    ax1.imshow(low_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
+    ax1.set_title('50-view FBP 1 (Clamped)')
     
-    ax2.imshow(low_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax2.set_title('Low-view FBP 2')
+    ax2.imshow(low_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
+    ax2.set_title('50-view FBP 2 (Clamped)')
     
-    ax3.imshow(full_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax3.set_title('Full-view FBP 1')
+    ax3.imshow(full_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
+    ax3.set_title('1000-view FBP 1 (Clamped)')
     
-    ax4.imshow(full_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r, vmin=0, vmax=1)
-    ax4.set_title('Full-view FBP 2')
+    ax4.imshow(full_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
+    ax4.set_title('1000-view FBP 2 (Clamped)')
     
     fig.tight_layout()
     plt.show()
