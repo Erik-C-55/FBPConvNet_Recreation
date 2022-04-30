@@ -211,10 +211,10 @@ def test(model, test_loader, device):
         unet_mse = torch.cat(unet_mse, dim=0)
         unet_psnr = torch.cat(unet_psnr, dim=0)
 
-        print('Average MSE per FBP sample: ' + str(torch.mean(fbp_mse)))
-        print('Average PSNR per FBP sample: ' + str(torch.mean(fbp_psnr)))
-        print('Average MSE per UNet sample: ' + str(torch.mean(unet_mse)))
-        print('Average PSNR per UNet sample: ' + str(torch.mean(unet_psnr)))
+        print('Average MSE per FBP sample: ' + str(torch.mean(fbp_mse).item()))
+        print('Average PSNR per FBP sample: ' + str(torch.mean(fbp_psnr).item()))
+        print('Average MSE per UNet sample: ' + str(torch.mean(unet_mse).item()))
+        print('Average PSNR per UNet sample: ' + str(torch.mean(unet_psnr).item()))
     
         return fbp_mse, fbp_psnr, unet_mse, unet_psnr, sampleRecon
     
@@ -345,7 +345,7 @@ def main(options):
                                                                    device)
         
         # Add the reconstructed image to tensorboard files
-        writer.add_image("UNet Output Image. MSE: {:.4f}. PSNR: {:.4f}".format(unet_mse[0], unet_psnr),
+        writer.add_image("UNet Output Image. MSE: {:.4f}. PSNR: {:.4f}".format(unet_mse[0], unet_psnr[0]),
                          make_grid(sampleRecon, pad_value=0.0, normalize=False,
                                    nrow=options.batch//2))
         
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
-    options.pretrained = 'logs/Clipping/2022-04-30-10-35-08/epoch_96_checkpoint.pth'
+    options.pretrained = 'logs/Clamping/2022-04-30-10-35-08/epoch_96_checkpoint.pth'
     options.max_epochs = 100
     options.loss = 'L1'
     options.sched_decay = 0.977
