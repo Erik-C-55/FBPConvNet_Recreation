@@ -159,7 +159,7 @@ def validation(model, val_loader, criterion, device, batch_size):
         
         return total_loss
     
-def main(options, seed = 0):
+def main(options):
     
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -167,7 +167,7 @@ def main(options, seed = 0):
         device = torch.device('cpu')
     
     # Seed things for reproducibility
-    gen = seedEverything(seed)
+    gen = seedEverything(options.seed)
     
     # Instantiate dataloaders, depending on testing or training setting
     dataLoaders = makeLoaders(options, gen)
@@ -219,7 +219,7 @@ def main(options, seed = 0):
     optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, FBPConvNet.parameters()),
                                 lr=lr, momentum=0.99)
     
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.977)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, options.sched_decay)
     
     valLoss = 0.09
     minValLoss = 0.09
@@ -282,20 +282,22 @@ if __name__ == '__main__':
     options.trainVal = True
     options.max_epochs = 100
     options.loss = 'L1'
-    
+    options.sched_decay = 0.977
+    options.seed = 0
+
     # Iterate over other options being explored
-    #for n_ellipse in [(5,14),(15,24),(25,34)]:
-        #for lviews in [50,143]:
-            #for samps in [500,1000]:
+    for n_ellipse in [(5,14),(15,24),(25,34)]:
+        for lviews in [50,143]:
+            for samps in [500,1000]:
                 
-    options.n_ellipse = (25,34)
-    options.low_views = 143
-    options.n_samps = 500
+                options.n_ellipse = n_ellipse
+                options.low_views = lviews
+                options.n_samps = samps
                 
-    # Only add graph if there are 500 samples
-    if samps == 500:
-        options.graph = True
+                # Only add graph if there are 500 samples
+                if samps == 500:
+                    options.graph = True
     
-    # options = getUserOptions(argv)
-    main(options)
+                # options = getUserOptions(argv)
+                main(options)
     
