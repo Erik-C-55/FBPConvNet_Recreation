@@ -385,25 +385,25 @@ if __name__ == '__main__':
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
-    options.pretrained = 'logs/Clamping/5_ellipse_50_view_500_samp/epoch_98_checkpoint.pth'
+    options.pretrained = None
     options.max_epochs = 100
     options.loss = 'L1'
     options.sched_decay = 0.977
     options.seed = 0
 
     # Iterate over other options being explored
-    # for n_ellipse in [(5,14),(15,24),(25,34)]:
-    #    for lviews in [50,143]:
-    #        for samps in [500,1000]:
+    for n_ellipse in [(5,14),(15,24),(25,34)]:
+        for lviews in [50,143]:
+            for samps in [500,1000]:
                 
-    options.n_ellipse = (5,14)
-    options.low_views = 50
-    options.n_samps = 500
+                options.n_ellipse = n_ellipse
+                options.low_views = lviews
+                options.n_samps = samps
                 
-    # Only add graph if there are 500 samples
-    # if samps == 500 or pretrained is not None:
-    options.graph = True
+                # Only add graph if there are 500 samples
+                if samps == 500 and options.pretrained is None:
+                    options.graph = True
     
-    # options = getUserOptions(argv)
-    main(options)
+                # options = getUserOptions(argv)
+                main(options)
     
