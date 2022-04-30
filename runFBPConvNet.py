@@ -385,7 +385,7 @@ if __name__ == '__main__':
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
-    options.pretrained = 'logs/Clamping/2022-04-30-10-35-08/epoch_96_checkpoint.pth'
+    options.pretrained = 'logs/Clamping/5_ellipse_50_view_500_samp/epoch_98_checkpoint.pth'
     options.max_epochs = 100
     options.loss = 'L1'
     options.sched_decay = 0.977
@@ -396,9 +396,9 @@ if __name__ == '__main__':
     #    for lviews in [50,143]:
     #        for samps in [500,1000]:
                 
-    options.n_ellipse = (25,34)
-    options.low_views = 143
-    options.n_samps = 1000
+    options.n_ellipse = (5,14)
+    options.low_views = 50
+    options.n_samps = 500
                 
     # Only add graph if there are 500 samples
     # if samps == 500 or pretrained is not None:
