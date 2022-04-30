@@ -168,13 +168,13 @@ def test(model, test_loader, device):
     
     # Initialize performance tensors
     mseLoss = torch.nn.MSELoss()
-    fbp_mse = torch.empty(dtype=torch.FloatTensor)
-    fbp_psnr = torch.empty(dtype=torch.FloatTensor)
-    unet_mse = torch.empty(dtype=torch.FloatTensor)
-    unet_psnr = torch.empty(dytpe=torch.FloatTensor)
+    fbp_mse = []
+    fbp_psnr = []
+    unet_mse = []
+    unet_psnr = []
     
     # Save a sample return tensor
-    sampleRecon = torch.zeros((512,512),dtype=torch.FloatTensor)
+    sampleRecon = torch.zeros((512,512))
     
     # Don't update gradients in test
     with torch.no_grad():
@@ -188,26 +188,29 @@ def test(model, test_loader, device):
             # Reconstruct low-view images
             recon = model(low_fbp)
             
-            # Add the FBP mse and U-Net mse to their respective tensors
-            torch.cat((fbp_mse, mseLoss(low_fbp, full_fbp).item()), dim=0)
-            torch.cat((unet_mse, mseLoss(recon, full_fbp).item()), dim=0)
+            # Add the FBP mse and U-Net mse to their respective tensor lists
+            fbp_mse.append(mseLoss(low_fbp, full_fbp).view(1))
+            unet_mse.append(mseLoss(recon, full_fbp).view(1))
             
             # Calculate the squared max of the ground truth
             truth_max_sq = torch.square(torch.max(full_fbp))
             
             # Calculate PSNR = 10log10((max(truth)^2)/MSE)
-            torch.cat((fbp_psnr, 10*torch.log10(torch.divide(truth_max_sq,
-                                                             fbp_mse[batch_idx]))),
-                       dim=0)
-            
-            torch.cat((unet_psnr, 10*torch.log10(torch.divide(truth_max_sq,
-                                                             unet_mse[batch_idx]))),
-                       dim=0)
+            fbp_psnr.append(10*torch.log10(torch.divide(truth_max_sq,
+                                                             fbp_mse[batch_idx])).view(1))            
+            unet_psnr.append(10*torch.log10(torch.divide(truth_max_sq,
+                                                             unet_mse[batch_idx])).view(1))
             
             # Save the first reconstructed image as an example
             if batch_idx == 0:
                 sampleRecon = recon
-            
+        
+        # Combine tensor lists using cat
+        fbp_mse = torch.cat(fbp_mse, dim=0)
+        fbp_psnr = torch.cat(fbp_psnr, dim=0)
+        unet_mse = torch.cat(unet_mse, dim=0)
+        unet_psnr = torch.cat(unet_psnr, dim=0)
+
         print('Average MSE per FBP sample: ' + str(torch.mean(fbp_mse)))
         print('Average PSNR per FBP sample: ' + str(torch.mean(fbp_psnr)))
         print('Average MSE per UNet sample: ' + str(torch.mean(unet_mse)))
@@ -326,7 +329,7 @@ def main(options):
             model_dict = FBPConvNet.state_dict()
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
 
-        print("Using file " + options.weights + ' to load ' + str(len(pretrained_dict)) + ' of the ' + str(len(model_dict)) + ' tensors of parameters in the model')
+        print("Using file " + options.pretrained + ' to load ' + str(len(pretrained_dict)) + ' of the ' + str(len(model_dict)) + ' tensors of parameters in the model')
  
         model_dict.update(pretrained_dict)
         FBPConvNet.load_state_dict(model_dict)
@@ -379,25 +382,25 @@ if __name__ == '__main__':
     options.workers = 8
     options.full_views = 1000
     options.batch = 8
-    options.pretrained = None
+    options.pretrained = 'logs/Clipping/2022-04-30-10-35-08/epoch_96_checkpoint.pth'
     options.max_epochs = 100
     options.loss = 'L1'
     options.sched_decay = 0.977
     options.seed = 0
 
     # Iterate over other options being explored
-    for n_ellipse in [(5,14),(15,24),(25,34)]:
-        for lviews in [50,143]:
-            for samps in [500,1000]:
+    # for n_ellipse in [(5,14),(15,24),(25,34)]:
+    #    for lviews in [50,143]:
+    #        for samps in [500,1000]:
                 
-                options.n_ellipse = n_ellipse
-                options.low_views = lviews
-                options.n_samps = samps
+    options.n_ellipse = (25,34)
+    options.low_views = 143
+    options.n_samps = 1000
                 
-                # Only add graph if there are 500 samples
-                if samps == 500:
-                    options.graph = True
+    # Only add graph if there are 500 samples
+    # if samps == 500 or pretrained is not None:
+    options.graph = True
     
-                # options = getUserOptions(argv)
-                main(options)
+    # options = getUserOptions(argv)
+    main(options)
     
