@@ -417,7 +417,7 @@ if __name__ == '__main__':
     options.n_samps = 1000
     
     # Generate the appropriate weights file automatically
-    searchString = 'logs/Clamping/' + str(options.n_ellipse[0]) + '_ellipse_' + \
+    searchString = 'logs/Clamp/' + str(options.n_ellipse[0]) + '_ellipse_' + \
         str(options.low_views) + '_view_' + str(options.n_samps) + '_samp/*checkpoint.pth'
         
     options.pretrained = glob(searchString)[0]
