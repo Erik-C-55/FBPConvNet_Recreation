@@ -412,12 +412,12 @@ if __name__ == '__main__':
                 
     # Cross-Testing Setup -----------------------------------------------------
     options.graph = True
-    options.n_ellipse = (5,14)
+    options.n_ellipse = (15,24)
     options.low_views = 50
-    options.n_samps = 500
+    options.n_samps = 1000
     
     # Generate the appropriate weights file automatically
-    searchString = 'logs/Clamping/' + str(options.n_ellipse[0]) + '_ellipse_' + \
+    searchString = 'logs/Clamp/' + str(options.n_ellipse[0]) + '_ellipse_' + \
         str(options.low_views) + '_view_' + str(options.n_samps) + '_samp/*checkpoint.pth'
         
     options.pretrained = glob(searchString)[0]
@@ -427,8 +427,7 @@ if __name__ == '__main__':
     for n_ellipse in [(5,14),(15,24),(25,34)]:
         for lviews in [50,143]:
             
-            print('Testing on ' + str(n_ellipse) + ' ellipses with ' + str(lviews) + \
-                  str(lviews) + ' views.')
+            print('Testing on ' + str(n_ellipse) + ' ellipses with ' + str(lviews) + ' views.')
             
             options.n_ellipse = n_ellipse
             options.low_views = lviews
