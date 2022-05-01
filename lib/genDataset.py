@@ -99,15 +99,19 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
         
         ax1.set_title("Original")
         ax1.imshow(im, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax1.axis('off')
         
         ax2.set_title("FBP 1000 Views")
         ax2.imshow(fbp_1000, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax2.axis('off')
         
         ax3.set_title("FBP 143 Views")
         ax3.imshow(fbp_143, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax3.axis('off')
         
         ax4.set_title("FBP 50 Views")
         ax4.imshow(fbp_50, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax4.axis('off')
         
         fig.tight_layout()
         plt.show()
