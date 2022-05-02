@@ -412,9 +412,9 @@ if __name__ == '__main__':
                 
     # Cross-Testing Setup -----------------------------------------------------
     options.graph = True
-    options.n_ellipse = (15,24)
+    options.n_ellipse = (25,34)
     options.low_views = 143
-    options.n_samps = 500
+    options.n_samps = 1000
     
     # Generate the appropriate weights file automatically
     searchString = 'logs/Clamp/' + str(options.n_ellipse[0]) + '_ellipse_' + \
