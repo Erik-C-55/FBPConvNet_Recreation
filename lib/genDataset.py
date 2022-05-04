@@ -37,6 +37,8 @@ def getArgs(CLArgs):
                         help='display samples of the first image generated. If unspecified, defaults to False.')
     parser.add_argument('-l','--lower_bound', type=int, default=5,
                         help='a random number (integer) of ellipses will be generated.  This is the lower bound for that random number. Default is 5.')
+    parser.add_argument('-m','--min_sample', type=int, default =1,
+                        help='(integer) the sample to start generating from.  Default is 1.  If some samples have already been generated and the dataset size needs to be increased, setting this to a value 1 greater than the number of samples already generated allows you to "pick up where you left off", as if you had originally requested all the samples you want.')
     parser.add_argument('-r','--res', type=int, default=512,
                         help='image resolution in pixels (integer).  Image will be square (res x res).  Resolution should be a multiple of 16. Default is 512.')
     parser.add_argument('-s','--samples', type=int, default=10,
@@ -120,7 +122,7 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
         fig.tight_layout()
         plt.show()
         
-def makeDataset(args, seed=0):
+def makeDataset(args):
     """This function generates a simulated dataset of grayscale ellipse images.
     The number of ellipses, image, size, etc. can all be set through
     command-line arguments.
@@ -145,10 +147,7 @@ def makeDataset(args, seed=0):
             the correct name does not already exist, it will be created.
             Existing images in the directory will be overwritten.
     """
-    # Set seeds for reproducibility
-    random.seed(seed)
-    np.random.seed(seed)
-    
+       
     # Calculate the number of digits to use for file names
     order_samps = int(np.log10(args.samples)) + 1
     
@@ -163,7 +162,15 @@ def makeDataset(args, seed=0):
         os.mkdir(subfolder)
     
     # For each image that needs generating
-    for samp in range(1, args.samples+1):
+    for samp in range(args.min_sample, args.samples+1):
+
+        # Set seeds for reproducibility. Normally, seeding every iteration is 
+        # wasteful.  However, seeding inside the loop allows you to increase
+        # you dataset size later without needing to re-generate samples
+        # you already have.
+        random.seed(samp)
+        np.random.seed(samp)
+
         image = np.zeros((args.res,args.res), dtype=np.single)
         
         # Randomly pick a number of ellipses from the specified range
