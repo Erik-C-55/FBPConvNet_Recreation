@@ -73,7 +73,7 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
     angles = np.linspace(0.0, 180.0, 1000, endpoint=False)
     
     # Calculate 'full-view' sinogram and filtered backprojection
-    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
+    sgram_full = radon(im, theta=angles, circle=False, preserve_range=True)
     
     fbp_1000 = iradon(sgram, filter_name='ramp', interpolation='linear',
                       circle=False, preserve_range=True)
@@ -94,7 +94,7 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
     np.save(os.path.join(dirs[0], imName), fbp_1000)
     np.save(os.path.join(dirs[1], imName), fbp_143)
     np.save(os.path.join(dirs[2], imName), fbp_50)
-    np.save(os.path.join(dirsgram, imName), sgram)
+    np.save(os.path.join(dirsgram, imName), sgram_full)
     
     if display and idx==1:
         print('1000-view sinogram size: ' + str(np.shape(sgram)))
