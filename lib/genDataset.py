@@ -77,10 +77,14 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
                       circle=False, preserve_range=True)
     
     # Calculate low-view FBP
-    fbp_143 = iradon(sgram[:,::7], filter_name='ramp', interpolation='linear',
+    angles = np.linspace(0.0, 180.0, 143, endpoint=False)
+    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
+    fbp_143 = iradon(sgram, filter_name='ramp', interpolation='linear',
                      circle=False, preserve_range=True)
     
-    fbp_50 = iradon(sgram[:,::20], filter_name='ramp', interpolation='linear',
+    angles = np.linspace(0.0, 180.0, 50, endpoint=False)
+    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
+    fbp_50 = iradon(sgram, filter_name='ramp', interpolation='linear',
                     circle=False, preserve_range=True)
     
     # Save files
@@ -98,19 +102,19 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2, figsize=(8,8))
         
         ax1.set_title("Original")
-        ax1.imshow(im, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax1.imshow(im, cmap=plt.cm.Greys_r)
         ax1.axis('off')
         
         ax2.set_title("FBP 1000 Views")
-        ax2.imshow(fbp_1000, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax2.imshow(fbp_1000, cmap=plt.cm.Greys_r)
         ax2.axis('off')
         
         ax3.set_title("FBP 143 Views")
-        ax3.imshow(fbp_143, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax3.imshow(fbp_143, cmap=plt.cm.Greys_r)
         ax3.axis('off')
         
         ax4.set_title("FBP 50 Views")
-        ax4.imshow(fbp_50, cmap=plt.cm.Greys_r, vmin=0.0, vmax=1.0)
+        ax4.imshow(fbp_50, cmap=plt.cm.Greys_r)
         ax4.axis('off')
         
         fig.tight_layout()
@@ -173,17 +177,14 @@ def makeDataset(args, seed=0):
                 a = np.random.randint(args.res/32,args.res/8)
                 b = np.random.randint(args.res/32,args.res/8)
                 theta = np.random.randint(0,360)
-                val = np.random.uniform(low=-0.5, high=0.5, size=None)
+                val = np.random.uniform(low=-500, high=500, size=None)
                 ellipseFits, newEllipse = genEllipse(m=args.res, h=h, k=k, a=a,
                                                      b=b, theta=theta, val=val)
                 
             image = np.add(image, newEllipse)
         
-        # Shift the image so that zero-valued pixels are now = 0.5
-        image = np.add(image, 0.5*np.ones((args.res,args.res),dtype=np.single))
-        
-        # Clip the image to lie between 0 and 1 for the radon transform library
-        image = np.clip(image, 0.0, 1.0)
+        # Clip the image to lie between -500 and 500
+        image = np.clip(image, -500, 500)
             
         # Apply Radon transform to this image
         applyRadon(image, samp, subfolder, order_samps, display=args.display)
