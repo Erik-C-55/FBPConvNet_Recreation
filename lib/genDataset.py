@@ -75,7 +75,7 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
     # Calculate 'full-view' sinogram and filtered backprojection
     sgram_full = radon(im, theta=angles, circle=False, preserve_range=True)
     
-    fbp_1000 = iradon(sgram, filter_name='ramp', interpolation='linear',
+    fbp_1000 = iradon(sgram_full, filter_name='ramp', interpolation='linear',
                       circle=False, preserve_range=True)
     
     # Calculate low-view FBP
