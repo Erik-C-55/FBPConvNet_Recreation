@@ -260,10 +260,10 @@ def main(options):
         # writer.add_graph(FBPConvNet, low_fbp)
         
         writer.add_image('Low-View FBP (Model Input)',
-                         make_grid(low_fbp, pad_value=0.0, normalize=False,
+                         make_grid(torch.clamp(low_fbp,min=-500,max=500), pad_value=0.0, normalize=False,
                                    nrow=options.batch//2))
         writer.add_image("'Full-view' FBP (Ground Truth)",
-                         make_grid(full_fbp, pad_value=0.0, normalize=False,
+                         make_grid(torch.clamp(full_fbp,min=-500,max=500), pad_value=0.0, normalize=False,
                                    nrow=options.batch//2))
     
     # Train the model, if required
