@@ -258,13 +258,14 @@ def main(options):
             
         # Turned off after the first time, now that I have a model graph
         # writer.add_graph(FBPConvNet, low_fbp)
-        
+       
+        # Add images to the tensorboard.  Using value_range performs clamping and normalizing
         writer.add_image('Low-View FBP (Model Input)',
-                         make_grid(torch.clamp(low_fbp,min=-500,max=500)+500, pad_value=0.0, normalize=True,
-                                   nrow=options.batch//2, scale_each=True))
+                        make_grid(low_fbp, pad_value=0.0, normalize=True, value_range=(-500.0,500.0),
+                                  nrow=options.batch//2))
         writer.add_image("'Full-view' FBP (Ground Truth)",
-                         make_grid(torch.clamp(full_fbp,min=-500,max=500)+500, pad_value=0.0, normalize=True,
-                                   nrow=options.batch//2, scale_each=True))
+                         make_grid(full_fbp, pad_value=0.0, normalize=True, value_range=(-500.0,500.0),
+                                   nrow=options.batch//2))
     
     # Train the model, if required
     if options.pretrained is None:
@@ -347,7 +348,7 @@ def main(options):
         
         # Add the reconstructed image to tensorboard files
         writer.add_image("UNet Output Image. MSE: {:.4f}. PSNR: {:.4f}".format(unet_mse[0], unet_psnr[0]),
-                         make_grid(sampleRecon, pad_value=0.0, normalize=False,
+                         make_grid(sampleRecon, pad_value=0.0, normalize=True, value_range=(-500.0,500.0),
                                    nrow=options.batch//2))
         
         # Save tensors describing metrics

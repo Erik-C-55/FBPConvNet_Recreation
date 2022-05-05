@@ -61,8 +61,8 @@ class FBPDataset(Dataset):
         # high ~4.1.  Since these values are unrealistic and the goal is not to
         # have the network reduce the loss simply by reducing the value of the
         # border pixels, clamp the inputs to the range [0.0, 1.0].
-        full_fbp = torch.clamp(full_fbp.unsqueeze(dim=0), min=0.0, max=1.0)
-        low_fbp = torch.clamp(low_fbp.unsqueeze(dim=0), min=0.0, max=1.0)
+        full_fbp = full_fbp.unsqueeze(dim=0)
+        low_fbp = low_fbp.unsqueeze(dim=0)
         
         # Transform ground truth and input. To ensure ground truth and low-view
         # images receive the same transformation, first combine them along a 
