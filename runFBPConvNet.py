@@ -261,10 +261,10 @@ def main(options):
         
         writer.add_image('Low-View FBP (Model Input)',
                          make_grid(torch.clamp(low_fbp,min=-500,max=500), pad_value=0.0, normalize=True,
-                                   nrow=options.batch//2))
+                                   nrow=options.batch//2, scale_each=True))
         writer.add_image("'Full-view' FBP (Ground Truth)",
                          make_grid(torch.clamp(full_fbp,min=-500,max=500), pad_value=0.0, normalize=True,
-                                   nrow=options.batch//2))
+                                   nrow=options.batch//2, scale_each=True))
     
     # Train the model, if required
     if options.pretrained is None:
