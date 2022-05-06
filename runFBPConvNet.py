@@ -388,7 +388,7 @@ if __name__ == '__main__':
     options.full_views = 1000
     options.batch = 8
     options.pretrained = None
-    options.max_epochs = 1
+    options.max_epochs = 100
     options.loss = 'L1'
     options.sched_decay = 0.977
     options.seed = 0
@@ -396,9 +396,9 @@ if __name__ == '__main__':
 
     # Training setup ---------------------------------------------------------
     # # Iterate over other options being explored
-    for n_ellipse in [(5,14),(15,24),(25,34)]:
-        for lviews in [50,143]:
-            for samps in [500,1000]:
+    for n_ellipse in [(5,14)]:
+        for lviews in [50]:
+            for samps in [500]:
                 
                 options.n_ellipse = n_ellipse
                 options.low_views = lviews
