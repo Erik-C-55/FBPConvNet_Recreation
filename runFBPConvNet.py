@@ -288,8 +288,8 @@ def main(options):
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer,
                                                            options.sched_decay)
         
-        valLoss = 0.09
-        minValLoss = 0.09
+        valLoss = 15
+        minValLoss = 15
         
         for epoch in range(1, options.max_epochs+1):
             print('---- Epoch ' + str(epoch) + ' ----')
@@ -395,24 +395,21 @@ if __name__ == '__main__':
     # options.graph = False
 
     # Training setup ---------------------------------------------------------
-    # # Iterate over other options being explored
+    #  Iterate over other options being explored
     for n_ellipse in [(5,14),(15,24),(25,34)]:
         for lviews in [50,143]:
             for samps in [500,1000]:
                
-                if n_ellipse[0] == 5 and lviews == 50 and samps == 500:
-                    break
-                else:
-                    options.n_ellipse = n_ellipse
-                    options.low_views = lviews
-                    options.n_samps = samps
+                options.n_ellipse = n_ellipse
+                options.low_views = lviews
+                options.n_samps = samps
                 
-                    # Only add graph if there are 500 samples
-                    if samps == 500 and options.pretrained is None:
-                        options.graph = True
+                # Only add graph if there are 500 samples
+                if samps == 500 and options.pretrained is None:
+                    options.graph = True
     
-                    # options = getUserOptions(argv)
-                    main(options)
+                # options = getUserOptions(argv)
+                main(options)
                 
     # Cross-Testing Setup -----------------------------------------------------
     # options.graph = True
@@ -420,7 +417,7 @@ if __name__ == '__main__':
     # options.low_views = 143
     # options.n_samps = 1000
     
-    # # Generate the appropriate weights file automatically
+    # Generate the appropriate weights file automatically
     # searchString = 'logs/Clamp/' + str(options.n_ellipse[0]) + '_ellipse_' + \
     #     str(options.low_views) + '_view_' + str(options.n_samps) + '_samp/*checkpoint.pth'
         
