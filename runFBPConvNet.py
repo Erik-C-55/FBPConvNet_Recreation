@@ -392,14 +392,14 @@ if __name__ == '__main__':
     options.loss = 'L1'
     options.sched_decay = 0.977
     options.seed = 0
-    # options.graph = False
+    options.graph = False
 
     # Training setup ---------------------------------------------------------
     #  Iterate over other options being explored
     for n_ellipse in [(5,14),(15,24),(25,34)]:
         for lviews in [50,143]:
             for samps in [500,1000]:
-               
+                 
                 options.n_ellipse = n_ellipse
                 options.low_views = lviews
                 options.n_samps = samps
@@ -407,6 +407,8 @@ if __name__ == '__main__':
                 # Only add graph if there are 500 samples
                 if samps == 500 and options.pretrained is None:
                     options.graph = True
+                else:
+                    options.graph = False
     
                 # options = getUserOptions(argv)
                 main(options)
