@@ -252,7 +252,7 @@ def main(options):
         train_sett = options.pretrained.split('_')
         logdir = os.path.join('logs','trained_on_' + train_sett[0] + '_' + \
                               train_sett[1] + '_' + train_sett[2] + \
-                                  'test_on_' + str(options.n_ellipse) + \
+                                  'test_on_' + str(options.n_ellipse[0]) + \
                                       str(options.low_views))
             
     elif options.mode == 'time_lapse':
@@ -261,6 +261,8 @@ def main(options):
         logdir = os.path.join('logs', str(options.n_ellipse[0]) + '_' + \
                               str(options.low_views) + '_' + str(options.n_samps) + \
                               '_'+ options.mode + '_epoch_' + tr_epoch)
+    
+    print(options.n_ellipse)
     
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
