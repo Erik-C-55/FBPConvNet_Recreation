@@ -396,44 +396,47 @@ if __name__ == '__main__':
 
     # Training setup ---------------------------------------------------------
     #  Iterate over other options being explored
+    # for n_ellipse in [(5,14),(15,24),(25,34)]:
+    #    for lviews in [50,143]:
+    #        for samps in [500,1000]:
+    #             
+    #            options.n_ellipse = n_ellipse
+    #            options.low_views = lviews
+    #            options.n_samps = samps
+    #            
+    #            # Only add graph if there are 500 samples
+    #            if samps == 500 and options.pretrained is None:
+    #                options.graph = True
+    #            else:
+    #                options.graph = False
+    #
+    #            # options = getUserOptions(argv)
+    #            main(options)
+                
+    # Cross-Testing Setup -----------------------------------------------------
+    options.graph = True
+    
+    #  Iterate over other options being explored
     for n_ellipse in [(5,14),(15,24),(25,34)]:
         for lviews in [50,143]:
             for samps in [500,1000]:
-                 
-                options.n_ellipse = n_ellipse
-                options.low_views = lviews
+    
+                # Generate the appropriate weights file automatically
+                searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
+                    str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
+			
+                options.pretrained = glob(searchString)[0]
                 options.n_samps = samps
-                
-                # Only add graph if there are 500 samples
-                if samps == 500 and options.pretrained is None:
-                    options.graph = True
-                else:
-                    options.graph = False
-    
-                # options = getUserOptions(argv)
-                main(options)
-                
-    # Cross-Testing Setup -----------------------------------------------------
-    # options.graph = True
-    # options.n_ellipse = (25,34)
-    # options.low_views = 143
-    # options.n_samps = 1000
-    
-    # Generate the appropriate weights file automatically
-    # searchString = 'logs/Clamp/' + str(options.n_ellipse[0]) + '_ellipse_' + \
-    #     str(options.low_views) + '_view_' + str(options.n_samps) + '_samp/*checkpoint.pth'
-        
-    # options.pretrained = glob(searchString)[0]
-    
-    # Now that I have the weights file, iterate over all 6 test combinations for
-    # this number of samples and these weights
-    # for n_ellipse in [(5,14),(15,24),(25,34)]:
-    #     for lviews in [50,143]:
-            
-    #         print('Testing on ' + str(n_ellipse) + ' ellipses with ' + str(lviews) + ' views.')
-            
-    #         options.n_ellipse = n_ellipse
-    #         options.low_views = lviews
-            
-    #         main(options)
+		    		
+                # Now that I have the weights file, iterate over all 6 test combinations for
+                # this number of samples and these weights
+                for ellipses in [(5,14),(15,24),(25,34)]:
+                    for low_views in [50,143]:
+			    
+                        print('Testing on ' + str(ellipses) + ' ellipses with ' + str(low_views) + ' views.')
+			    
+                        options.n_ellipse = ellipses
+                        options.low_views = low_views
+			    
+                        main(options)
             
