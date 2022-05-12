@@ -243,7 +243,7 @@ def main(options):
     
     # Generate the appropriate log directory
     if options.mode =='train':
-        logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
+        logdir = os.path.join('logs', str(options.n_ellipse[0]) + '_' + \
                               str(options.low_views) + '_' + str(options.n_samps) + \
                               '_'+ options.mode)
             
@@ -258,9 +258,9 @@ def main(options):
     elif options.mode == 'time_lapse':
         # Extract the trainin epoch number from the checkpoint path
         tr_epoch = options.pretrained.split('_')[-2]
-        logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
+        logdir = os.path.join('logs', str(options.n_ellipse[0]) + '_' + \
                               str(options.low_views) + '_' + str(options.n_samps) + \
-                              '_'+ options.mode + 'epoch_' + tr_epoch)
+                              '_'+ options.mode + '_epoch_' + tr_epoch)
     
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
