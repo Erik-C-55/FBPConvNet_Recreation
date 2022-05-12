@@ -422,67 +422,68 @@ if __name__ == '__main__':
     # Training setup ---------------------------------------------------------
     options.mode = 'train'
     #  Iterate over other options being explored
-    # for n_ellipse in [(5,14),(15,24),(25,34)]:
-    #    for lviews in [50,143]:
-    #        for samps in [500,1000]:
-    #             
-    #            options.n_ellipse = n_ellipse
-    #            options.low_views = lviews
-    #            options.n_samps = samps
-    #            
-    #            # Only add graph if there are 500 samples
-    #            if samps == 500 and options.pretrained is None:
-    #                options.graph = True
-    #            else:
-    #                options.graph = False
-    #
-    #            # options = getUserOptions(argv)
-    #            main(options)
+    for n_ellipse in [(25,34)]: # [(5,14),(15,24),(25,34)]:
+        for lviews in [143]: #[50,143]:
+            for samps in [1000]: #[500,1000]:
+                
+               options.n_ellipse = n_ellipse
+               options.low_views = lviews
+               options.n_samps = samps
+                
+               # Only add graph if there are 500 samples
+               if samps == 500 and options.pretrained is None:
+                   options.graph = True
+               else:
+                   options.graph = False
+    
+               # options = getUserOptions(argv)
+               main(options)
             
     # Time-Lapse Setup --------------------------------------------------------
-    options.graph = True
-    options.mode = 'time_lapse'
-    options.batch = 4
-    options.n_ellipse = (15,24)
-    options.low_views = 50
-    options.n_samps = 1000
+    # options.graph = True
+    # options.mode = 'time_lapse'
+    # options.batch = 4
+    # options.n_ellipse = (15,24)
+    # options.low_views = 50
+    # options.n_samps = 1000
     
     # Generate the appropriate weights file automatically
-    searchString = 'logs/Orig_Range/' + str(options.n_ellipse[0]) + '_' + \
-        str(options.low_views) + '_' + str(options.n_samps) + '_train/*checkpoint.pth'
+    # searchString = 'logs/Orig_Range/' + str(options.n_ellipse[0]) + '_' + \
+    #    str(options.low_views) + '_' + str(options.n_samps) + '_train/*checkpoint.pth'
     
     # Perform testing for each time step along the way to show how training the
     # model improves reconstruction quality
-    for pretr_chkpt in glob(searchString):
-        options.pretrained = pretr_chkpt
+    # for pretr_chkpt in glob(searchString):
+    #     options.pretrained = pretr_chkpt
         
-        main(options)
+    #     main(options)
             
     # Cross-Testing Setup -----------------------------------------------------
-    options.graph = True
-    
+    # options.graph = True
+    # options.mode = 'test'
+
     #  Iterate over other options being explored
-    for n_ellipse in [(5,14),(15,24),(25,34)]:
-        for lviews in [50,143]:
-            for samps in [500,1000]:
+    # for n_ellipse in [(5,14),(15,24),(25,34)]:
+    #     for lviews in [50,143]:
+    #        for samps in [500,1000]:
     
-                # Generate the appropriate weights file automatically
-                searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
-                    str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
+    #             # Generate the appropriate weights file automatically
+    #            searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
+    #                str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
 			
-                # Take the last checkpoint, as it has lowest validation loss
-                options.pretrained = glob(searchString)[-1]
-                options.n_samps = samps
+    #            # Take the last checkpoint, as it has lowest validation loss
+    #             options.pretrained = glob(searchString)[-1]
+    #             options.n_samps = samps
 		    		
                 # Now that I have the weights file, iterate over all 6 test combinations for
                 # this number of samples and these weights
-                for ellipses in [(5,14),(15,24),(25,34)]:
-                    for low_views in [50,143]:
+    #             for ellipses in [(5,14),(15,24),(25,34)]:
+    #                 for low_views in [50,143]:
 			    
-                        print('Testing on ' + str(ellipses) + ' ellipses with ' + str(low_views) + ' views.')
+    #                     print('Testing on ' + str(ellipses) + ' ellipses with ' + str(low_views) + ' views.')
 			    
-                        options.n_ellipse = ellipses
-                        options.low_views = low_views
+    #                     options.n_ellipse = ellipses
+    #                     options.low_views = low_views
 			    
-                        main(options)
+    #                     main(options)
             
