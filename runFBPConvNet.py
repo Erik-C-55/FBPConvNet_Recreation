@@ -1,4 +1,5 @@
 import os
+import copy
 import time
 import torch
 import random
@@ -261,9 +262,7 @@ def main(options):
         logdir = os.path.join('logs', str(options.n_ellipse[0]) + '_' + \
                               str(options.low_views) + '_' + str(options.n_samps) + \
                               '_'+ options.mode + '_epoch_' + tr_epoch)
-    
-    print(options.n_ellipse)
-    
+       
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
     else:
@@ -390,7 +389,7 @@ def main(options):
                        'Mean UNet PSNR': torch.mean(unet_psnr)}
                        
         
-    hparam_dict = vars(options)
+    hparam_dict = vars(copy.deepcopy(options))
     # Convert n_ellipses back to a string
     hparam_dict['n_ellipse'] = str(hparam_dict['n_ellipse'])
     
