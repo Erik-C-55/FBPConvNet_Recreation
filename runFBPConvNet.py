@@ -235,22 +235,37 @@ def main(options):
     if options.pretrained is None:
         tr_loader = dataLoaders[0]
         val_loader = dataLoaders[1]
-        mode = 'train'
     else:
         test_loader = dataLoaders[0]
-        mode = 'test'
            
     # Generate Model
     FBPConvNet = UNet()
     
-    logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
-                          str(options.low_views) + '_' + str(options.n_samps) + \
-                          '_'+ mode)
+    # Generate the appropriate log directory
+    if options.mode =='train':
+        logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
+                              str(options.low_views) + '_' + str(options.n_samps) + \
+                              '_'+ options.mode)
+            
+    elif options.mode == 'test':
+        # Extract the info on the training data from the checkpoint path
+        train_sett = options.pretrained.split('_')
+        logdir = os.path.join('logs','trained_on_' + train_sett[0] + '_' + \
+                              train_sett[1] + '_' + train_sett[2] + \
+                                  'test_on_' + str(options.n_ellipse) + \
+                                      str(options.low_views))
+            
+    elif options.mode == 'time_lapse':
+        # Extract the trainin epoch number from the checkpoint path
+        tr_epoch = options.pretrained.split('_')[-2]
+        logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
+                              str(options.low_views) + '_' + str(options.n_samps) + \
+                              '_'+ options.mode + 'epoch_' + tr_epoch)
     
     if not os.path.isdir(logdir):
         os.makedirs(logdir)
     else:
-        print('A log directory for this dataset exists.  Using timestamp as directory name.')
+        print('A log directory for this setting exists.  Using timestamp as directory name.')
         cur_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
         logdir = os.path.join('logs', cur_time)
         os.makedirs(logdir)
@@ -404,6 +419,7 @@ if __name__ == '__main__':
     options.graph = False
 
     # Training setup ---------------------------------------------------------
+    options.mode = 'train'
     #  Iterate over other options being explored
     # for n_ellipse in [(5,14),(15,24),(25,34)]:
     #    for lviews in [50,143]:
@@ -421,32 +437,50 @@ if __name__ == '__main__':
     #
     #            # options = getUserOptions(argv)
     #            main(options)
-                
-    # Cross-Testing Setup -----------------------------------------------------
+            
+    # Time-Lapse Setup --------------------------------------------------------
     options.graph = True
+    options.mode = 'time_lapse'
+    options.batch = 4
+    options.n_ellipse = (15,24)
+    options.low_views = 50
+    options.n_samps = 1000
     
-    #  Iterate over other options being explored
-    for n_ellipse in [(5,14),(15,24),(25,34)]:
-        for lviews in [50,143]:
-            for samps in [500,1000]:
+    # Generate the appropriate weights file automatically
+    searchString = 'logs/Orig_Range/' + str(options.n_ellipse[0]) + '_' + \
+        str(options.low_views) + '_' + str(options.n_samps) + '_train/*checkpoint.pth'
     
-                # Generate the appropriate weights file automatically
-                searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
-                    str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
+    # Perform testing for each time step along the way to show how training the
+    # model improves reconstruction quality
+    for pretr_chkpt in glob(searchString):
+        options.pretrained = pretr_chkpt
+        
+        main(options)
+            
+    # Cross-Testing Setup -----------------------------------------------------
+    # options.mode = 'test'
+    # options.graph = True
+    # n_ellipse = (5,14)
+    # lviews = 50
+    # samps = 500
+    
+    # Generate the appropriate weights file automatically
+    # searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
+        # str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
 			
-                # Take the last checkpoint, as it has lowest validation loss
-                options.pretrained = glob(searchString)[-1]
-                options.n_samps = samps
+    # Take the last checkpoint, as it has lowest validation loss
+    # options.pretrained = glob(searchString)[-1]
+    # options.n_samps = samps
 		    		
-                # Now that I have the weights file, iterate over all 6 test combinations for
-                # this number of samples and these weights
-                for ellipses in [(5,14),(15,24),(25,34)]:
-                    for low_views in [50,143]:
+    # Now that I have the weights file, iterate over all 6 test combinations for
+    # this number of samples and these weights
+    # for ellipses in [(5,14),(15,24),(25,34)]:
+        # for low_views in [50,143]:
 			    
-                        print('Testing on ' + str(ellipses) + ' ellipses with ' + str(low_views) + ' views.')
+            # print('Testing on ' + str(ellipses) + ' ellipses with ' + str(low_views) + ' views.')
 			    
-                        options.n_ellipse = ellipses
-                        options.low_views = low_views
+            # options.n_ellipse = ellipses
+            # options.low_views = low_views
 			    
-                        main(options)
+            # main(options)
             
