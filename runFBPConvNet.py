@@ -235,15 +235,24 @@ def main(options):
     if options.pretrained is None:
         tr_loader = dataLoaders[0]
         val_loader = dataLoaders[1]
+        mode = 'train'
     else:
         test_loader = dataLoaders[0]
+        mode = 'test'
            
     # Generate Model
     FBPConvNet = UNet()
     
-    cur_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    logdir = os.path.join('logs', cur_time)
+    logdir = os.path.join('logs', str(options.n_ellipse) + '_' + \
+                          str(options.low_views) + '_' + str(options.n_samps) + \
+                          '_'+ mode)
+    
     if not os.path.isdir(logdir):
+        os.makedirs(logdir)
+    else:
+        print('A log directory for this dataset exists.  Using timestamp as directory name.')
+        cur_time = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+        logdir = os.path.join('logs', cur_time)
         os.makedirs(logdir)
     
     # Generate Tensorboard SummaryWriter for tracking
@@ -425,7 +434,8 @@ if __name__ == '__main__':
                 searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
                     str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
 			
-                options.pretrained = glob(searchString)[0]
+                # Take the last checkpoint, as it has lowest validation loss
+                options.pretrained = glob(searchString)[-1]
                 options.n_samps = samps
 		    		
                 # Now that I have the weights file, iterate over all 6 test combinations for
