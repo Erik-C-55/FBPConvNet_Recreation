@@ -25,7 +25,7 @@ def getArgs(CLArgs):
             execution.  For a list of available options and arguments, see the
             parser.add_argument() calls below
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
     # Suppress filename & add required arguments
     parser.add_argument("filename",type=str,help=argparse.SUPPRESS)
@@ -34,17 +34,17 @@ def getArgs(CLArgs):
     
     # Add optional arguments
     parser.add_argument('-d','--display', action='store_true',
-                        help='display samples of the first image generated. If unspecified, defaults to False.')
+                        help='display samples of the first image generated.')
     parser.add_argument('-l','--lower_bound', type=int, default=5,
-                        help='a random number (integer) of ellipses will be generated.  This is the lower bound for that random number. Default is 5.')
+                        help='a random number (integer) of ellipses will be generated.  This is the lower bound for that random number.')
     parser.add_argument('-m','--min_sample', type=int, default =1,
-                        help='(integer) the sample to start generating from.  Default is 1.  If some samples have already been generated and the dataset size needs to be increased, setting this to a value 1 greater than the number of samples already generated allows you to "pick up where you left off", as if you had originally requested all the samples you want.')
+                        help='(integer) the sample to start generating from. If some samples have already been generated and the dataset size needs to be increased, setting this to a value 1 greater than the number of samples already generated allows you to "pick up where you left off"')
     parser.add_argument('-r','--res', type=int, default=512,
-                        help='image resolution in pixels (integer).  Image will be square (res x res).  Resolution should be a multiple of 16. Default is 512.')
+                        help='image resolution in pixels (integer).  Image will be square (res x res).  Resolution should be a multiple of 16.')
     parser.add_argument('-s','--samples', type=int, default=10,
-                        help='integer number of sample images to generate. Default is 10.')
+                        help='integer number of sample images to generate.')
     parser.add_argument('-u','--upper_bound', type=int, default=15,
-                        help='a random number (integer) of ellipses will be generated.  This is the upper bound for that random number. Default is 15')
+                        help='a random number (integer) of ellipses will be generated.  This is the upper bound for that random number.')
     
     args = parser.parse_args(CLArgs)
     
