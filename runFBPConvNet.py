@@ -1,12 +1,16 @@
+# Standard Imports
 import os
 import copy
 import time
-import torch
 import random
-import numpy as np
-
+import typing
+import argparse
 from sys import argv
 from glob import glob
+
+# Third-Party Imports
+import torch
+import numpy as np
 from torchvision.utils import make_grid
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import Compose, RandomHorizontalFlip, \
@@ -15,8 +19,9 @@ from torchvision.transforms import Compose, RandomHorizontalFlip, \
 # Import from this repo
 from lib.unet import UNet 
 from lib.dataset import FBPDataset
-# from lib.userInput import getUserOptions
+from lib.userInput import get_user_options
 
+    
 def seedEverything(seed):
     torch.manual_seed(seed)
     random.seed(seed)

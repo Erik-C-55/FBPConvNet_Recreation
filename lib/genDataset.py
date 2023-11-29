@@ -1,30 +1,33 @@
+# Standard Imports
 import os
 import random
+import typing
 import argparse
+from sys import argv
+
+# Third-Party Imports
 import numpy as np
 import matplotlib.pyplot as plt
-
-from sys import argv
 from skimage.transform import radon, iradon
 
 # Import functions from this repo
 from ellipseGenerator import genEllipse
 
-# This function parses command-line arguments to allow flexible execution.  For
-# an explanation 
-def getArgs(CLArgs):
-    """This function uses a Python argument parser to process command-line
-    arguments.  For an explanation of each command-line option, see the 
-    associated help string in the parser.add_argument() call.
+
+def getArgs(CLArgs: typing.List[str]) -> argparse.Namespace:
+    """Process command-line arguments using argparse.
     
-    Parameters:
-        CLArgs: A list of command-line arguments, obtained through sys.argv
+    Parameters
+    ----------
+    CLArgs : typing.List[str]
+        Command-line arguments, obtained through sys.argv
         
-    Returns:
-        args: A Namespace object containing relevant options and arguments for
-            execution.  For a list of available options and arguments, see the
-            parser.add_argument() calls below
+    Returns
+    -------
+    args : argparse.Namespace 
+        Relevant options and arguments for execution
     """
+    
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
     # Suppress filename & add required arguments
@@ -54,8 +57,28 @@ def getArgs(CLArgs):
     
     return args
 
-def applyRadon(im, idx, directory, ord_samps, display=False):
-     
+
+def applyRadon(im: np.ndarray, idx: int, directory: str, ord_samps: int, display: bool=False) -> None:
+    """
+    Generate and save 1000-view and low-view reconstructed images
+
+    Parameters
+    ----------
+    im : np.ndarray
+        The image to be transformed and reconstructed
+    idx : int
+        The index number of the image to be saved
+    directory : str
+        Filepath for the given number of ellipses
+    ord_samps : int
+        Number of digits to use for filenames (performs zero-padding)
+    display : bool, optional
+        Whether to display the generated images. The default is False.
+
+    Returns
+    -------
+    None.
+    """
     # Generate names for directories.  If they don't exist, create them
     dirs = []
     for count, views in enumerate([1000, 143, 50]):
@@ -121,31 +144,24 @@ def applyRadon(im, idx, directory, ord_samps, display=False):
         
         fig.tight_layout()
         plt.show()
+     
         
-def makeDataset(args):
-    """This function generates a simulated dataset of grayscale ellipse images.
-    The number of ellipses, image, size, etc. can all be set through
-    command-line arguments.
+def makeDataset(args: argparse.Namespace) -> None:
+    """Generate a simulated dataset of grayscale ellipse images.
     
-    Parameters:
-        args: A Namespace object containing relevant options and arguments for
-            execution.  This has been parsed from sys.argv using the function
-            getArgs(). For a list of available options and arguments, see the
-            parser.add_argument() calls bin getArgs, or execute this file with
-            the -h or --help options.
-        seed: (Optional) An integer used to seed random number generators for 
-            reproducibility. Defaults to 0.
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Relevant options and arguments for execution.
         
-    Returns:
-        Nothing
+    Returns
+    -------
+    None.
         
-    Outputs:
-        output_dir: In the directory specified by args.output_dir, this creates
-            grayscale images of randomly drawn ellipses.  Images are saved as
-            floating point numpy arrays with pixel values in the range (0,1).
-            Each image will be numbered as im_xx0.npy, etc. If a directory of
-            the correct name does not already exist, it will be created.
-            Existing images in the directory will be overwritten.
+    Outputs
+    -------
+    output_dir: 
+        Grayscale images (np arrays) of randomly drawn ellipses.
     """
        
     # Calculate the number of digits to use for file names
@@ -195,6 +211,7 @@ def makeDataset(args):
             
         # Apply Radon transform to this image
         applyRadon(image, samp, subfolder, order_samps, display=args.display)
+
 
 # If this file is run, parse the command-line arguments and the call main()
 if __name__ == '__main__':

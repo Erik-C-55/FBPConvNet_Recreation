@@ -1,7 +1,11 @@
+# Standard Imports
+import typing
+
+# Third-Party Imports
 import numpy as np
 from skimage.transform import rotate
 
-def checkEllipseBounds(m,h,k,a,b,theta):
+def checkEllipseBounds(m: int, h: int, k: int, a: int, b:int, theta:int) -> bool:
     """This function calculates the bounding box for a rotated ellipse, then
     returns whether or not the ellipse (approximated by its bounding box) fits
     within the original image and the rotated image.
@@ -56,7 +60,8 @@ def checkEllipseBounds(m,h,k,a,b,theta):
         
     return ellipseFits
     
-def genEllipse(m=64, h=0, k=0, a=1, b=1, theta=0, val=1):
+
+def genEllipse(m: int=64, h: int=0, k: int=0, a: int=1, b: int=1, theta: int=0, val: int=1) -> typing.Tuple[bool, np.ndarray]:
     """This function draws an ellipse in an empty image. If the specified
     ellipse does not fit in the given image size, the returned image is empty.
     

@@ -1,10 +1,7 @@
-import torch
-import torch.nn as nn
+"""unet.py 
 
-# NOTES: This implements the modified U-Net architecture described in [1]. The
-#       code is based heavily off on [2], with slight modifications made to 
-#       match the feature map sizes in [1] and facilitate model viewing in 
-#       Tensorboard.
+Implements the modified U-Net architecture described in [1]. The code is based heavily on [2], with slight modifications made to 
+match the feature map sizes in [1] and facilitate model viewing in Tensorboard.
 
 # [1] K. H. Jin, M. T. McCann, E. Froustey, and M. Unser, “Deep
 # convolutional neural network for inverse problems in imaging,” IEEE
@@ -14,20 +11,28 @@ import torch.nn as nn
 # “U-net: A pytorch implementation in 60 lines of code.”
 # https://amaarora.github.io/2020/09/13/unet.html, 2020.
 # Accessed 27 April 2022.
+"""
+
+# Standard Imports
+import typing
+
+# Third-Party Imports
+import torch
+import torch.nn as nn
+
     
 class DbleConvBlock(nn.Module):
-    """This class is the smallest building block of UNet - 2 Conv2d layers with
-    BN and ReLU between them. Note that BN and ReLU layers have individual
-    names to facilitate model viewing in Tensorboard
+    """The smallest building block of UNet - 2 Conv2d layers with BN & ReLU between them.
     
-    Parameters:
-        in_chan: (int) The # of input channels to the 1st convolution
-        out_chan: (int) The # of output channels to the 1st, 2nd convolutions
-        
-    Returns:
-        x: (FloatTensor) The result of the convolutions, BN, and ReLUs
+    Parameters
+    ----------
+    in_chan : int 
+        The # of input channels to the 1st convolution
+    out_chan : int
+        The # of output channels to the 1st, 2nd convolutions
     """
-    def __init__(self, in_chan, out_chan):
+    
+    def __init__(self, in_chan: int, out_chan: int):
         super().__init__()
         
         # 3x3 conv - zero pad to preserve size (see [1]), bias in BN layer
@@ -49,22 +54,26 @@ class DbleConvBlock(nn.Module):
         x = self.relu2(x)
         
         return x
-        
-class ContractPath(nn.Module):
-    """This class consists of the contracting/decoder side of U-net that
-    increases the number of feature maps while decreasing spatial dimensions.
     
-    Parameters:
-        chs: (tuple of ints) The number of feature maps at each encoder stage
+    
+class ContractPath(nn.Module):
+    """The contracting/encoder side of U-net.
+    
+    Parameters
+    ----------
+    chs : (int, int, int, int, int, int, int)
+        The number of feature maps at each encoder stage
         
-    Returns:
-        features: (list of FloatTensor) The feature maps for each skip
-            connection in U-net, starting with the low-channel, high-spatial
-            dimension group of maps and moving to the high-channel, low-spatial
-            dimension group of maps.  To access feature maps at skip connection
-            n, simply index using features[n]
+    Returns
+    -------
+    features: (list of FloatTensor) The feature maps for each skip
+        connection in U-net, starting with the low-channel, high-spatial
+        dimension group of maps and moving to the high-channel, low-spatial
+        dimension group of maps.  To access feature maps at skip connection
+        n, simply index using features[n]
     """
-    def __init__(self, chs=(1,64,64,128,256,512,1024)):
+    
+    def __init__(self, chs: typing.Tuple[int]=(1,64,64,128,256,512,1024)):
         super().__init__()
        
         # Add extra conv at beginning to match [1]
@@ -95,9 +104,16 @@ class ContractPath(nn.Module):
             
         return features
     
+    
 class ExpandPath(nn.Module):
-    """This class consists of the """
-    def __init__(self, chs=(1024,512,256,128,64)):
+    """The expanding/decoder side of U-Net.
+    
+    Parameters
+    ----------
+    chs : (int, int, int, int, int)
+        The number of feature maps at each decoder stage
+    """
+    def __init__(self, chs: typing.Tuple[int]=(1024,512,256,128,64)):
         super().__init__()
         self.upconvs = nn.ModuleList(
             [nn.ConvTranspose2d(chs[i],chs[i+1],2,2) for i in range(len(chs)-1)])
@@ -113,10 +129,23 @@ class ExpandPath(nn.Module):
             x = self.expand_blocks[idx](x)
             
         return x
-            
+        
+    
 class UNet(nn.Module):
-    def __init__(self, enc_chs=(1,64,64,128,256,512,1024),
-                 dec_chs=(1024,512,256,128,64), n_class=1):
+    """The U-Net model.
+    
+    Parameters
+    ----------
+    enc_chs : (int, int, int, int, int, int, int)
+        The number of feature maps at each encoder stage
+    dec_chs : (int, int, int, int, int)
+        The number of feature maps at each decoder stage
+    n_class : int
+        Number of output channels for the network
+    """
+    
+    def __init__(self, enc_chs: typing.Tuple[int]=(1,64,64,128,256,512,1024),
+                 dec_chs: typing.Tuple[int]=(1024,512,256,128,64), n_class: int=1):
     
         super().__init__()
         self.encoder = ContractPath(enc_chs)
