@@ -1,7 +1,8 @@
 """unet.py 
 
-Implements the modified U-Net architecture described in [1]. The code is based heavily on [2], with slight modifications made to 
-match the feature map sizes in [1] and facilitate model viewing in Tensorboard.
+Implements the modified U-Net architecture described in [1]. The code is based 
+heavily on [2], with slight modifications made to match the feature map sizes 
+in [1] and facilitate model viewing in Tensorboard.
 
 # [1] K. H. Jin, M. T. McCann, E. Froustey, and M. Unser, “Deep
 # convolutional neural network for inverse problems in imaging,” IEEE
@@ -22,7 +23,7 @@ import torch.nn as nn
 
     
 class DbleConvBlock(nn.Module):
-    """The smallest building block of UNet - 2 Conv2d layers with BN & ReLU between them.
+    """Smallest building block of UNet: (Conv2d + BN + ReLU)x2
     
     Parameters
     ----------
@@ -44,7 +45,7 @@ class DbleConvBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_chan)
         self.relu2 = nn.ReLU(inplace=True)
         
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
@@ -73,7 +74,8 @@ class ContractPath(nn.Module):
         n, simply index using features[n]
     """
     
-    def __init__(self, chs: typing.Tuple[int]=(1,64,64,128,256,512,1024)):
+    def __init__(self,
+                 chs: typing.Tuple[int]=(1, 64, 64, 128, 256, 512, 1024)):
         super().__init__()
        
         # Add extra conv at beginning to match [1]
@@ -87,7 +89,7 @@ class ContractPath(nn.Module):
         self.pool_list = nn.ModuleList(
             [nn.MaxPool2d(2) for i in range(1,len(chs)-1)])
         
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Pass through initial conv
         x = self.conv1(x)
         x = self.bn1(x)
@@ -113,14 +115,16 @@ class ExpandPath(nn.Module):
     chs : (int, int, int, int, int)
         The number of feature maps at each decoder stage
     """
-    def __init__(self, chs: typing.Tuple[int]=(1024,512,256,128,64)):
+    def __init__(self, chs: typing.Tuple[int]=(1024, 512, 256, 128, 64)):
         super().__init__()
         self.upconvs = nn.ModuleList(
-            [nn.ConvTranspose2d(chs[i],chs[i+1],2,2) for i in range(len(chs)-1)])
+            [nn.ConvTranspose2d(chs[i], chs[i+1], 2, 2)
+             for i in range(len(chs)-1)])
         self.expand_blocks = nn.ModuleList(
             [DbleConvBlock(chs[i], chs[i+1]) for i in range(len(chs)-1)])
         
-    def forward(self, x, encoder_features):
+    def forward(self, x: torch.Tensor,
+                encoder_features: typing.Tuple[int]) -> torch.Tensor:
         for idx in range(len(self.upconvs)):
             x = self.upconvs[idx](x)
             # TIP: Note that no cropping is necessary, since the feature maps
@@ -144,15 +148,17 @@ class UNet(nn.Module):
         Number of output channels for the network
     """
     
-    def __init__(self, enc_chs: typing.Tuple[int]=(1,64,64,128,256,512,1024),
-                 dec_chs: typing.Tuple[int]=(1024,512,256,128,64), n_class: int=1):
+    def __init__(self,
+                 enc_chs: typing.Tuple[int]=(1, 64, 64, 128, 256, 512, 1024),
+                 dec_chs: typing.Tuple[int]=(1024, 512, 256, 128, 64),
+                 n_class: int=1):
     
         super().__init__()
         self.encoder = ContractPath(enc_chs)
         self.decoder = ExpandPath(dec_chs)
         self.chan_combine = nn.Conv2d(dec_chs[-1], n_class, 1, padding=0)
         
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = x
         enc_features = self.encoder(x)
         # Reverse the order of the features list, use 0 as x, others as skips
@@ -168,5 +174,5 @@ if __name__ == '__main__':
     unet = UNet()
     x = torch.randn(4, 1, 512, 512)
     
-    print('Model Input Size: ' + str(x.shape))
-    print('Model Output Size: ' + str(unet(x).shape))
+    print(f'Model Input Size: {x.shape}')
+    print(f'Model Output Size: {unet(x).shape}')

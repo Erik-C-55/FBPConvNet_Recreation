@@ -5,26 +5,32 @@ import typing
 import numpy as np
 from skimage.transform import rotate
 
-def checkEllipseBounds(m: int, h: int, k: int, a: int, b:int, theta:int) -> bool:
-    """This function calculates the bounding box for a rotated ellipse, then
-    returns whether or not the ellipse (approximated by its bounding box) fits
-    within the original image and the rotated image.
+def checkEllipseBounds(m: int, h: int, k: int, a: int, b:int,
+                       theta: int) -> bool:
+    """Calculates whether an ellipse fits within the original & rotated images.
     
-    Parameters:
-        m (int): width/height (in pixels) of the (square) image. The origin of 
-            the graph will be placed at m//2, so the graph bounds are -m//2 
-            and m//2
-        h (int): x-coordinate for the center of the ellipse
-        k (int): y-coordinate for the center of the ellipse
-        a (int): a is half the length of the horizontal axis of the ellipse
-            (before rotation)
-        b (int): b is half the length of the vertical axis of the ellipse
-            (before rotation)
-        theta (int): theta is the angle of ellipse rotation (in degrees) about
-            the origin.  Rotation is applied before horizontal/vertical shifts.
+    Parameters
+    ----------
+    m : int 
+        width/height (in pixels) of the (square) image. The origin of 
+        the graph will be placed at m//2, so the graph bounds are -m//2 
+        and m//2
+    h : int 
+        x-coordinate for the center of the ellipse
+    k : int
+        y-coordinate for the center of the ellipse
+    a : int 
+        half the length of the horizontal axis of the ellipse (before rotation)
+    b : int 
+        half the length of the vertical axis of the ellipse (before rotation)
+    theta : int 
+        the angle of ellipse rotation (in degrees) about the origin. Rotation
+        is applied before horizontal/vertical shifts.
     
-    Returns:
-        ellipseFits (bool): True if the ellipse fits. False if it does not fit.
+    Returns
+    ----------
+    ellipseFits : bool 
+        True if the ellipse fits. False if it does not fit.
     """
     
     # Find original bounding box, centered @ (0,0) (shift by h, k occurs later)
@@ -61,31 +67,39 @@ def checkEllipseBounds(m: int, h: int, k: int, a: int, b:int, theta:int) -> bool
     return ellipseFits
     
 
-def genEllipse(m: int=64, h: int=0, k: int=0, a: int=1, b: int=1, theta: int=0, val: int=1) -> typing.Tuple[bool, np.ndarray]:
-    """This function draws an ellipse in an empty image. If the specified
-    ellipse does not fit in the given image size, the returned image is empty.
+def genEllipse(m: int=64, h: int=0, k: int=0, a: int=1, b: int=1, theta: int=0,
+               val: int=1) -> typing.Tuple[bool, np.ndarray]:
+    """Draws an ellipse in an empty image. Returns an empty image if the
+    ellipse does not fit in the given image size.
     
-    Parameters:
-        m (int): width/height (in pixels) of the (square) image. The origin of 
-            the graph will be placed at m//2, so the graph bounds are -m//2 
-            and m//2
-        h (int): x-coordinate for the center of the ellipse
-        k (int): y-coordinate for the center of the ellipse
-        a (int): a is half the length of the horizontal axis of the ellipse
-            (before rotation)
-        b (int): b is half the length of the vertical axis of the ellipse
-            (before rotation)
-        theta (int): theta is the angle of ellipse rotation (in degrees) about
-            the origin.  Rotation is applied before horizontal/vertical shifts.
-        val (int): val is the pixel intensity within the ellipse.  All other 
-            pixels are set to 0.
+    Parameters
+    ----------
+    m : int 
+        width/height (in pixels) of the (square) image. The origin of 
+        the graph will be placed at m//2, so the graph bounds are -m//2 
+        and m//2
+    h : int
+        x-coordinate for the center of the ellipse
+    k : int
+        y-coordinate for the center of the ellipse
+    a : int
+        half the length of the horizontal axis of the ellipse (before rotation)
+    b : int
+        half the length of the vertical axis of the ellipse (before rotation)
+    theta : int
+        the angle of ellipse rotation (in degrees) about the origin. Rotation
+        is applied before horizontal/vertical shifts.
+    val : int
+        val is the pixel intensity within the ellipse.  All other 
+        pixels are set to 0.
     
-    Returns:
-        ellipseFits (bool): True if the ellipse fits. False if it does not fit.
-        im (ndarray): An int32 array with the ellipse drawn in it. If the 
-            specified ellipse does not fit in the given image size, the
-            returned image is empty.
-            
+    Returns
+    ----------
+    ellipseFits : bool
+        True if the ellipse fits. False if it does not fit.
+    im : numpy.ndarray
+        An int32 array with the ellipse drawn in it. If the specified ellipse 
+        does not fit in the given image size, the returned image is empty.
     """
     
     # Check that this ellipse will completely fit in its place before rotating

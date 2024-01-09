@@ -1,3 +1,8 @@
+"""genDataset.py
+
+Generates a dataset of random ellipses according to command-line arguments. For
+help, run `python genDataset.py --help` in the command-line"""
+
 # Standard Imports
 import os
 import random
@@ -14,12 +19,12 @@ from skimage.transform import radon, iradon
 from ellipseGenerator import genEllipse
 
 
-def getArgs(CLArgs: typing.List[str]) -> argparse.Namespace:
+def getArgs(cl_args: typing.List[str]) -> argparse.Namespace:
     """Process command-line arguments using argparse.
     
     Parameters
     ----------
-    CLArgs : typing.List[str]
+    cl_args : typing.List[str]
         Command-line arguments, obtained through sys.argv
         
     Returns
@@ -28,7 +33,8 @@ def getArgs(CLArgs: typing.List[str]) -> argparse.Namespace:
         Relevant options and arguments for execution
     """
     
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
     # Suppress filename & add required arguments
     parser.add_argument("filename",type=str,help=argparse.SUPPRESS)
@@ -39,17 +45,27 @@ def getArgs(CLArgs: typing.List[str]) -> argparse.Namespace:
     parser.add_argument('-d','--display', action='store_true',
                         help='display samples of the first image generated.')
     parser.add_argument('-l','--lower_bound', type=int, default=5,
-                        help='a random number (integer) of ellipses will be generated.  This is the lower bound for that random number.')
+                        help='a random number of ellipses will be generated.' +
+                        ' This is the lower bound for that random number.')
     parser.add_argument('-m','--min_sample', type=int, default =1,
-                        help='(integer) the sample to start generating from. If some samples have already been generated and the dataset size needs to be increased, setting this to a value 1 greater than the number of samples already generated allows you to "pick up where you left off"')
+                        help='(integer) the sample to start generating from.' +
+                        ' If some samples have already been generated and' +
+                        ' the dataset size needs to be increased, setting ' +
+                        ' this to a value 1 greater than the number of' +
+                        ' samples already generated allows you to "pick up' +
+                        ' where you left off"')
     parser.add_argument('-r','--res', type=int, default=512,
-                        help='image resolution in pixels (integer).  Image will be square (res x res).  Resolution should be a multiple of 16.')
+                        help='image resolution in pixels (integer).  Image' +
+                        ' will be square (res x res).  Res should be a' +
+                        ' multiple of 16.')
     parser.add_argument('-s','--samples', type=int, default=10,
                         help='integer number of sample images to generate.')
     parser.add_argument('-u','--upper_bound', type=int, default=15,
-                        help='a random number (integer) of ellipses will be generated.  This is the upper bound for that random number.')
+                        help='a random number (integer) of ellipses will be' +
+                        ' generated.  This is the upper bound for that' +
+                        ' random number.')
     
-    args = parser.parse_args(CLArgs)
+    args = parser.parse_args(cl_args)
     
     # Ensure that the upper bound is greater than the lower bound
     if args.lower_bound > args.upper_bound:
@@ -58,7 +74,8 @@ def getArgs(CLArgs: typing.List[str]) -> argparse.Namespace:
     return args
 
 
-def applyRadon(im: np.ndarray, idx: int, directory: str, ord_samps: int, display: bool=False) -> None:
+def applyRadon(im: np.ndarray, idx: int, directory: str, ord_samps: int,
+               display: bool=False) -> None:
     """
     Generate and save 1000-view and low-view reconstructed images
 
@@ -74,11 +91,8 @@ def applyRadon(im: np.ndarray, idx: int, directory: str, ord_samps: int, display
         Number of digits to use for filenames (performs zero-padding)
     display : bool, optional
         Whether to display the generated images. The default is False.
-
-    Returns
-    -------
-    None.
     """
+    
     # Generate names for directories.  If they don't exist, create them
     dirs = []
     for count, views in enumerate([1000, 143, 50]):
@@ -153,10 +167,6 @@ def makeDataset(args: argparse.Namespace) -> None:
     ----------
     args : argparse.Namespace
         Relevant options and arguments for execution.
-        
-    Returns
-    -------
-    None.
         
     Outputs
     -------

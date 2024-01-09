@@ -1,14 +1,43 @@
+"""dataset.py
+
+Creates the dataset, dataloader for use in training/evaluating the model."""
+
+# Standard Imports
 import os
+import typing
+
+# Third-Party Imports
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader, Dataset
+from torchvision.transforms import Compose, RandomHorizontalFlip, \
+    RandomVerticalFlip
+
 
 class FBPDataset(Dataset):
+    """A class for the FBPConvNet Datataset
     
-    def __init__(self, n_ellipse=(25,34), full_views=1000, low_views=50,
-                 transform=None, mode='train', n_samps=500):
+    Parameters
+    ----------
+    n_ellipse : (int, int)
+        (min, max) # of ellipses per image. Helps find pre-generated image dir
+    full_views : int
+        Number of views used for "full-view" filtered back projection
+    low_views : int
+        Reduced number of views used for low-view filtered back projection
+    transform : torch.nn.Module
+        Any torchvision transforms to be applied to this data
+    mode : str
+        'train', 'validation', or 'test'
+    n_samps: int
+        Number of samples to use for all the data (train+val+test)
+    """
+    def __init__(self, n_ellipse: typing.Tuple[int]=(25, 34), 
+                 full_views: int=1000, low_views: int=50,
+                 transform: torch.nn.Module=None, mode: str='train',
+                 n_samps: int=500):
         self.n_ellipse = n_ellipse
         self.im_size = 512
         self.full_views = full_views
@@ -19,10 +48,12 @@ class FBPDataset(Dataset):
         
         self.obtainImList(n_ellipse, n_samps, mode)
         
-    def obtainImList(self, n_ellipse, n_samps, mode):
+    def obtainImList(self, n_ellipse: int, n_samps: int, mode: str):
+        """Obtains a list of filepaths for dataset images"""
         
         # Name of directory where images are stored
-        dirName = os.path.join('imageData',str(n_ellipse[0]) + '_' + str(n_ellipse[1]) +'_Images')
+        dirName = os.path.join('imageData',
+                               f'{n_ellipse[0]}_{n_ellipse[1]}_Images')
         
         # Since the images are randomly generated anyway, the training set can
         # simply be the first 90% of images, with the next 5% for validation &
@@ -46,8 +77,10 @@ class FBPDataset(Dataset):
             
         for im in range(lower, upper):
             imName = 'im_' + str(im).zfill(4) + '.npy'
-            self.full_views_list.append(os.path.join(dirName, str(self.full_views) + '_Views', imName))
-            self.low_views_list.append(os.path.join(dirName, str(self.low_views) + '_Views', imName))
+            self.full_views_list.append(os.path.join(
+                dirName, f'{self.full_views}_Views', imName))
+            self.low_views_list.append(os.path.join(
+                dirName, f'{self.low_views}_Views', imName))
         
     def __getitem__(self, index):
         
@@ -55,12 +88,7 @@ class FBPDataset(Dataset):
         full_fbp = torch.from_numpy(np.load(self.full_views_list[index]))
         low_fbp = torch.from_numpy(np.load(self.low_views_list[index]))
        
-        # Expand tensors to preserve channel dimension. Note that skimage 
-        # radon/iradon generated pixel intensities outside the original range
-        # (0.0, 1.0), especially along the borders, where the intensity is very
-        # high ~4.1.  Since these values are unrealistic and the goal is not to
-        # have the network reduce the loss simply by reducing the value of the
-        # border pixels, clamp the inputs to the range [0.0, 1.0].
+        # Expand tensors to preserve channel dimension.
         full_fbp = full_fbp.unsqueeze(dim=0)
         low_fbp = low_fbp.unsqueeze(dim=0)
         
@@ -70,18 +98,19 @@ class FBPDataset(Dataset):
         # [Frames =2, Channels=1, Height, Width]
         
         if self.transform is not None:
-            transformed = self.transform(torch.stack((full_fbp, low_fbp), dim=0))
+            transformed = self.transform(torch.stack((full_fbp, low_fbp),
+                                                     dim=0))
             full_fbp = transformed[0,:,:,:]
             low_fbp = transformed[1,:,:,:]
         
         return low_fbp, full_fbp
     
-    def __len__(self):
+    def __len__(self) -> int:
+        """Returns dataset length"""
         return len(self.full_views_list)
-       
+    
+        
 if __name__ == '__main__':
-    from torchvision.transforms import Compose, RandomHorizontalFlip, \
-        RandomVerticalFlip
         
     transform = Compose([RandomHorizontalFlip(), RandomVerticalFlip()])
     
@@ -93,16 +122,16 @@ if __name__ == '__main__':
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
     
     ax1.imshow(low_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
-    ax1.set_title('50-view FBP 1 (Clamped)')
+    ax1.set_title('50-view FBP 1')
     
     ax2.imshow(low_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
-    ax2.set_title('50-view FBP 2 (Clamped)')
+    ax2.set_title('50-view FBP 2')
     
     ax3.imshow(full_fbp[0,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
-    ax3.set_title('1000-view FBP 1 (Clamped)')
+    ax3.set_title('1000-view FBP 1')
     
     ax4.imshow(full_fbp[1,:,:,:].squeeze(0), cmap=plt.cm.Greys_r)
-    ax4.set_title('1000-view FBP 2 (Clamped)')
+    ax4.set_title('1000-view FBP 2')
     
     fig.tight_layout()
     plt.show()
