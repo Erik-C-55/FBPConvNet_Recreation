@@ -205,9 +205,8 @@ def make_dataset(args: argparse.Namespace) -> None:
                 b = np.random.randint(args.res/32, args.res/8)
                 theta = np.random.randint(0, 360)
                 val = np.random.uniform(low=-500, high=500, size=None)
-                ellipse_fits, new_ellipse = gen_ellipse(m=args.res, h=h, k=k,
-                                                        a=a, b=b, theta=theta,
-                                                        val=val)
+                ellipse_fits, new_ellipse = gen_ellipse(
+                    args.res, center=(h, k), a=a, b=b, theta=theta, val=val)
 
             image = np.add(image, new_ellipse)
 

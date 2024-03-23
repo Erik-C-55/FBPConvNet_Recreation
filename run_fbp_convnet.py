@@ -78,7 +78,7 @@ def make_loaders(
     Returns
     ----------
     [torch.utils.data.DataLoader]
-        Either [training_dataloader, val_dataloader] or [test_dataloader] 
+        Either [training_dataloader, val_dataloader] or [test_dataloader]
     """
     # Add data augmentation used by original authors
     tr_trnsfrm = Compose([RandomHorizontalFlip(p=0.5),
@@ -172,7 +172,7 @@ def train(model: torch.nn.Module, tr_loader: torch.utils.data.DataLoader,
 
     total_loss = 0.0
 
-    for batch_idx, (low_fbp, full_fbp) in enumerate(tr_loader):
+    for low_fbp, full_fbp in tr_loader:
 
         # Zero the gradients
         optimizer.zero_grad()
@@ -199,7 +199,7 @@ def train(model: torch.nn.Module, tr_loader: torch.utils.data.DataLoader,
         optimizer.step()
 
     # Average total loss across batches, including the small last batch
-    total_loss = total_loss / (batch_idx + prop_full_batch)
+    total_loss = total_loss / (len(tr_loader) + prop_full_batch)
 
     print(f'Average Training Loss Per Sample: {total_loss:.6f}')
 
@@ -241,7 +241,7 @@ def validation(model: torch.nn.Module, val_loader: torch.data.utils.DataLoader,
     # Stop updating gradients for validation
     with torch.no_grad():
 
-        for batch_idx, (low_fbp, full_fbp) in enumerate(val_loader):
+        for low_fbp, full_fbp in val_loader:
 
             # Move inputs/ground truth to GPU
             low_fbp = low_fbp.to(device)
@@ -256,7 +256,7 @@ def validation(model: torch.nn.Module, val_loader: torch.data.utils.DataLoader,
             total_loss += (loss.item() * prop_full_batch)
 
         # Average total loss across batches, including the small last batch
-        total_loss = total_loss / (batch_idx + prop_full_batch)
+        total_loss = total_loss / (len(val_loader) + prop_full_batch)
 
         print(f'Average Validation Loss Per Sample: {total_loss:.6f}')
 
@@ -264,8 +264,7 @@ def validation(model: torch.nn.Module, val_loader: torch.data.utils.DataLoader,
 
 
 def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader,
-         device: torch.device):
-    # TODO: I don't think the return type is actually a float.  Check.
+         device: torch.device) -> typing.Tuple[torch.Tensor]:
     """Tests the model
 
     Parameters
@@ -279,9 +278,18 @@ def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader,
 
     Returns
     ----------
-    loss : float
-        Average loss across all batches
+    fbp_mse : torch.Tensor
+        Mean Squared Error of Filtered Back-Projection alone
+    fbp_psnr : torch.Tensor
+        Peak Signal-to-Noise Ratio of Filtered Back-Projection alone
+    unet_mse : torch.Tensor
+        Mean Squared Error of U-Net reconstruction
+    unet_psnr : torch.Tensor
+        Peak Signal-to-Noise Ratio of U-Net Reconstruction
+    recon_samp : torch.Tensor
+        A sample reconstructed image (for logging to TensorBoard)
     """
+
     # Set model to eval mode
     model.eval()
 

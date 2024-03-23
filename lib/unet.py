@@ -19,7 +19,7 @@ import typing
 
 # Third-Party Imports
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class DbleConvBlock(nn.Module):
