@@ -1,6 +1,6 @@
-"""runFBPConvNet.py
+"""run_fbp_convnet.py
 
-Runs the FBPConvNet model. For help, run `python runFBPConvNet.py --help` in
+Runs the FBPConvNet model. For help, run `python run_fbp_convnet.py --help` in
 the command-line"""
 
 # Standard Imports
@@ -30,6 +30,14 @@ NUM_WORKERS = 8  # Number of dataloader workers
 
 
 def seed_everything(seed: int) -> torch.Generator:
+    """Sets the random seed for as many libraries as possible
+
+    Parameters
+    ----------
+    seed : int
+        The random seed to use
+    """
+
     torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -42,15 +50,36 @@ def seed_everything(seed: int) -> torch.Generator:
     return g
 
 
-def seed_worker(worker_id) -> None:
+def seed_worker(worker_id: int) -> None:
+    """Random seeds for workers
+
+    Parameters
+    ----------
+    worker_id : int
+        id for this worker
+    """
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
 
-def make_loaders(options: argparse.Namespace,
-                 gen) -> typing.List[torch.utils.data.DataLoader]:
+def make_loaders(
+        options: argparse.Namespace,
+        gen: torch.Generator) -> typing.List[torch.utils.data.DataLoader]:
+    """Makes dataloaders
 
+    Parameters
+    ----------
+    options : argparse.Namespace
+        Must have 'n_ellipse', 'low_views', 'n_samps', 'n_batch' elements
+    gen : torch.Generator
+        Generator for dataloaders
+
+    Returns
+    ----------
+    [torch.utils.data.DataLoader]
+        Either [training_dataloader, val_dataloader] or [test_dataloader] 
+    """
     # Add data augmentation used by original authors
     tr_trnsfrm = Compose([RandomHorizontalFlip(p=0.5),
                           RandomVerticalFlip(p=0.5)])
@@ -109,7 +138,34 @@ def make_loaders(options: argparse.Namespace,
     return data_loaders
 
 
-def train(model, tr_loader, criterion, optimizer, device, batch_size):
+def train(model: torch.nn.Module, tr_loader: torch.utils.data.DataLoader,
+          criterion: typing.Union[torch.nn.L1Loss, torch.nn.MSELoss],
+          optimizer: torch.optim.Optimizer, device: torch.device,
+          batch_size: int) -> float:
+
+    # TODO: I don't think the return type is actually a float.  Check.
+    """Trains the model
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model to be trained
+    tr_loader : torch.utils.data.DataLoader
+        DataLoader for training data
+    criterion : torch.nn.L1Loss or torch.nn.MSELoss
+        Training loss function
+    optimizer : torch.optim.Optimizer
+        The optimizer to use
+    device : torch.device
+        The GPU or CPU device
+    batch_size : int
+        The training batch size
+
+    Returns
+    ----------
+    loss : float
+        Average loss across all batches
+    """
 
     # Set the model to training mode
     model.train()
@@ -150,7 +206,32 @@ def train(model, tr_loader, criterion, optimizer, device, batch_size):
     return total_loss
 
 
-def validation(model, val_loader, criterion, device, batch_size):
+def validation(model: torch.nn.Module, val_loader: torch.data.utils.DataLoader,
+               criterion: typing.Union[torch.nn.L1Loss, torch.nn.MSELoss],
+               device: torch.device, batch_size: int) -> float:
+    # TODO: I don't think the return type is actually a float.  Check.
+    """Trains the model
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model to be trained
+    val_loader : torch.utils.data.DataLoader
+        DataLoader for validation data
+    criterion : torch.nn.L1Loss or torch.nn.MSELoss
+        Validation loss function
+    optimizer : torch.optim.Optimizer
+        The optimizer to use
+    device : torch.device
+        The GPU or CPU device
+    batch_size : int
+        The training batch size
+
+    Returns
+    ----------
+    loss : float
+        Average loss across all batches
+    """
 
     # Set model to eval mode
     model.eval()
@@ -177,25 +258,42 @@ def validation(model, val_loader, criterion, device, batch_size):
         # Average total loss across batches, including the small last batch
         total_loss = total_loss / (batch_idx + prop_full_batch)
 
-        print('Average Validation Loss Per Sample: {:.6f}'.format(total_loss))
+        print(f'Average Validation Loss Per Sample: {total_loss:.6f}')
 
         return total_loss
 
 
-def test(model, test_loader, device):
+def test(model: torch.nn.Module, test_loader: torch.utils.data.DataLoader,
+         device: torch.device):
+    # TODO: I don't think the return type is actually a float.  Check.
+    """Tests the model
 
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model to be trained
+    test_loader : torch.utils.data.DataLoader
+        DataLoader for test data
+    device : torch.device
+        The GPU or CPU device
+
+    Returns
+    ----------
+    loss : float
+        Average loss across all batches
+    """
     # Set model to eval mode
     model.eval()
 
     # Initialize performance tensors
-    mseLoss = torch.nn.MSELoss()
+    mse_loss = torch.nn.MSELoss()
     fbp_mse = []
     fbp_psnr = []
     unet_mse = []
     unet_psnr = []
 
     # Save a sample return tensor
-    sampleRecon = torch.zeros((512, 512))
+    recon_samp = torch.zeros((512, 512))
 
     # Don't update gradients in test
     with torch.no_grad():
@@ -210,8 +308,8 @@ def test(model, test_loader, device):
             recon = model(low_fbp)
 
             # Add the FBP mse and U-Net mse to their respective tensor lists
-            fbp_mse.append(mseLoss(low_fbp, full_fbp).view(1))
-            unet_mse.append(mseLoss(recon, full_fbp).view(1))
+            fbp_mse.append(mse_loss(low_fbp, full_fbp).view(1))
+            unet_mse.append(mse_loss(recon, full_fbp).view(1))
 
             # Calculate the squared max of the ground truth
             truth_max_sq = torch.square(torch.max(full_fbp))
@@ -224,7 +322,7 @@ def test(model, test_loader, device):
 
             # Save the first reconstructed image as an example
             if batch_idx == 0:
-                sampleRecon = recon
+                recon_samp = recon
 
         # Combine tensor lists using cat
         fbp_mse = torch.cat(fbp_mse, dim=0)
@@ -237,7 +335,7 @@ def test(model, test_loader, device):
         print(f'Average MSE per UNet sample: {torch.mean(unet_mse).item()}')
         print(f'Average PSNR per UNet sample: {torch.mean(unet_psnr).item()}')
 
-        return fbp_mse, fbp_psnr, unet_mse, unet_psnr, sampleRecon
+        return fbp_mse, fbp_psnr, unet_mse, unet_psnr, recon_samp
 
 
 def main(args):
@@ -251,16 +349,16 @@ def main(args):
     gen = seed_everything(args.seed)
 
     # Instantiate dataloaders, depending on testing or training setting
-    dataLoaders = make_loaders(args, gen)
+    data_loaders = make_loaders(args, gen)
 
     if args.pretrained is None:
-        tr_loader = dataLoaders[0]
-        val_loader = dataLoaders[1]
+        tr_loader = data_loaders[0]
+        val_loader = data_loaders[1]
     else:
-        test_loader = dataLoaders[0]
+        test_loader = data_loaders[0]
 
     # Generate Model
-    FBPConvNet = UNet()
+    fbp_convnet = UNet()
 
     # Generate the appropriate log directory
     if args.mode == 'train':
@@ -270,13 +368,11 @@ def main(args):
 
     elif args.mode == 'test':
         # Extract the info on the training data from the checkpoint path
-        train_sett = args.pretrained.split('_')
-        ellipse_count = train_sett[1].split(os.path.sep)[-1]
+        train_set = args.pretrained.split('_')
+        ellipse_count = train_set[1].split(os.path.sep)[-1]
 
-        dir_string = 'trained_on_' + ellipse_count + '_' + \
-            train_sett[2] + '_' + train_sett[3] + \
-            '_test_on_' + \
-            str(args.n_ellipse[0]) + '_' + str(args.low_views)
+        dir_string = f'trained_on_{ellipse_count}_{train_set[2]}_' + \
+            f'{train_set[3]}_test_on_{args.n_ellipse[0]}_{args.low_views}'
 
         logdir = os.path.join('logs', dir_string)
 
@@ -324,7 +420,7 @@ def main(args):
     if args.pretrained is None:
 
         # Move the model to the GPU
-        FBPConvNet = FBPConvNet.to(device)
+        fbp_convnet = fbp_convnet.to(device)
 
         # Define the loss, optimizer, and scheduler
         if args.loss == 'L1':
@@ -335,76 +431,76 @@ def main(args):
         # Original authors used batch=1. If batchsize is greater, scale lr
         lr = 0.01 * float(args.batch)
         optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad,
-                                           FBPConvNet.parameters()), lr=lr,
+                                           fbp_convnet.parameters()), lr=lr,
                                     momentum=0.99)
 
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer,
                                                            args.sched_decay)
 
-        valLoss = 15
-        minValLoss = 15
+        val_loss = 15
+        min_val_loss = 15
 
         for epoch in range(1, args.max_epochs+1):
             print('---- Epoch ' + str(epoch) + ' ----')
-            trLoss = float(train(FBPConvNet, tr_loader, loss, optimizer,
-                                 device, args.batch))
+            tr_loss = float(train(fbp_convnet, tr_loader, loss, optimizer,
+                                  device, args.batch))
 
             # Check against validation images every 2nd epoch
             if (epoch % 2 == 0 or epoch == args.max_epochs):
-                valLoss = float(validation(FBPConvNet, val_loader, loss,
-                                           device, args.batch))
+                val_loss = float(validation(fbp_convnet, val_loader, loss,
+                                            device, args.batch))
 
                 # Update the max tracker as needed
-                if valLoss < minValLoss:
-                    minValLoss = valLoss
+                if val_loss < min_val_loss:
+                    min_val_loss = val_loss
 
                     # Don't worry about saving checkpoints until at
                     # least 1/5 through training, as it is unlikely
                     # that the best model will be achieved before then
-                    if (epoch > args.max_epochs//5):
+                    if epoch > args.max_epochs//5:
                         checkpt_path = os.path.join(
-                            logdir, "epoch_" + str(epoch) + "_checkpoint.pth")
-                        torch.save(FBPConvNet.state_dict(), checkpt_path)
+                            logdir, f'epoch_{epoch}_checkpoint.pth')
+                        torch.save(fbp_convnet.state_dict(), checkpt_path)
 
             # Log info to SummaryWriter
-            writer.add_scalars('Losses', {'Tr_Loss': trLoss,
-                                          'Val_Loss': valLoss}, epoch)
+            writer.add_scalars('Losses', {'Tr_Loss': tr_loss,
+                                          'Val_Loss': val_loss}, epoch)
             scheduler.step()
 
         # Generate train-appropriate metric dictionary
-        metric_dict = {'tr ' + args.loss + ' loss': trLoss,
-                       'val ' + args.loss + ' loss': valLoss}
+        metric_dict = {'tr ' + args.loss + ' loss': tr_loss,
+                       'val ' + args.loss + ' loss': val_loss}
 
     # Test the model if pretrained weights are passed
     else:
 
         # Load pretrained weights
-        pretrained_dict = torch.load(args.pretrained, map_location='cpu')
+        pretrain_dict = torch.load(args.pretrained, map_location='cpu')
         try:
-            model_dict = FBPConvNet.state_dict()
+            model_dict = fbp_convnet.state_dict()
         except AttributeError:
-            model_dict = FBPConvNet.state_dict()
-        pretrained_dict = {k: v for k,
-                           v in pretrained_dict.items() if k in model_dict}
+            model_dict = fbp_convnet.state_dict()
+        pretrain_dict = {k: v for k,
+                         v in pretrain_dict.items() if k in model_dict.keys()}
 
         print("Using file " + args.pretrained + ' to load ' +
-              str(len(pretrained_dict)) + ' of the ' + str(len(model_dict)) +
+              str(len(pretrain_dict)) + ' of the ' + str(len(model_dict)) +
               ' tensors of parameters in the model')
 
-        model_dict.update(pretrained_dict)
-        FBPConvNet.load_state_dict(model_dict)
+        model_dict.update(pretrain_dict)
+        fbp_convnet.load_state_dict(model_dict)
 
         # Move the model to the GPU
-        FBPConvNet = FBPConvNet.to(device)
+        fbp_convnet = fbp_convnet.to(device)
 
-        fbp_mse, fbp_psnr, unet_mse, unet_psnr, sampleRecon = test(FBPConvNet,
-                                                                   test_loader,
-                                                                   device)
+        fbp_mse, fbp_psnr, unet_mse, unet_psnr, recon_samp = test(fbp_convnet,
+                                                                  test_loader,
+                                                                  device)
 
         # Add the reconstructed image to tensorboard files
         writer.add_image(f"UNet Output. MSE: {unet_mse[0]:.4f}. " +
                          "PSNR: {unet_psnr[0]:.4f}",
-                         make_grid(sampleRecon, pad_value=0.0, normalize=True,
+                         make_grid(recon_samp, pad_value=0.0, normalize=True,
                                    value_range=(-500.0, 500.0),
                                    nrow=args.batch//2))
 
@@ -438,16 +534,16 @@ if __name__ == '__main__':
 
     # Temp, for debug only
     from argparse import Namespace
-    options = Namespace()
+    cl_args = Namespace()
 
     # Fix constant options
-    options.batch = 8
-    options.pretrained = None
-    options.max_epochs = 100
-    options.loss = 'L1'
-    options.sched_decay = 0.977
-    options.seed = 0
-    options.graph = False
+    cl_args.batch = 8
+    cl_args.pretrained = None
+    cl_args.max_epochs = 100
+    cl_args.loss = 'L1'
+    cl_args.sched_decay = 0.977
+    cl_args.seed = 0
+    cl_args.graph = False
 
     # Training setup ---------------------------------------------------------
     # options.mode = 'train'
@@ -489,8 +585,8 @@ if __name__ == '__main__':
     #     main(options)
 
     # Cross-Testing Setup -----------------------------------------------------
-    options.graph = True
-    options.mode = 'test'
+    cl_args.graph = True
+    cl_args.mode = 'test'
 
     #  Iterate over other options being explored
     for n_ellipse in [(5, 14), (15, 24), (25, 34)]:
@@ -498,12 +594,12 @@ if __name__ == '__main__':
             for samps in [500, 1000]:
 
                 # Generate the appropriate weights file automatically
-                searchString = 'logs/Orig_Range/' + str(n_ellipse[0]) + '_' + \
+                search_string = f'logs/Orig_Range/{n_ellipse[0]}_' + \
                     str(lviews) + '_' + str(samps) + '_train/*checkpoint.pth'
 
                 # Take the last checkpoint, as it has lowest validation loss
-                options.pretrained = glob(searchString)[-1]
-                options.n_samps = samps
+                cl_args.pretrained = glob(search_string)[-1]
+                cl_args.n_samps = samps
 
                 # Using the weights file, iterate over all 6 test combinations
                 # for this number of samples and these weights
@@ -513,7 +609,7 @@ if __name__ == '__main__':
                         print(f'Testing on {ellipses} ellipses with ' +
                               f'{low_views} views.')
 
-                        options.n_ellipse = ellipses
-                        options.low_views = low_views
+                        cl_args.n_ellipse = ellipses
+                        cl_args.low_views = low_views
 
-                        main(options)
+                        main(cl_args)

@@ -18,6 +18,9 @@ from skimage.transform import radon, iradon
 # Import functions from this repo
 from lib.ellipse_generator import gen_ellipse
 
+# Repo examines 1000-, 143-, & 50-view reconstructions
+RECON_VIEWS = (1000, 143, 50)
+
 
 def get_args(cl_args: typing.List[str]) -> argparse.Namespace:
     """Process command-line arguments using argparse.
@@ -44,26 +47,23 @@ def get_args(cl_args: typing.List[str]) -> argparse.Namespace:
     # Add optional arguments
     parser.add_argument('-d', '--display', action='store_true',
                         help='display samples of the first image generated.')
-    parser.add_argument('-l', '--lower_bound', type=int, default=5,
-                        help='a random number of ellipses will be generated.' +
-                        ' This is the lower bound for that random number.')
-    parser.add_argument('-m', '--min_sample', type=int, default=1,
-                        help='(integer) the sample to start generating from.' +
-                        ' If some samples have already been generated and' +
-                        ' the dataset size needs to be increased, setting ' +
-                        ' this to a value 1 greater than the number of' +
-                        ' samples already generated allows you to "pick up' +
-                        ' where you left off"')
-    parser.add_argument('-r', '--res', type=int, default=512,
-                        help='image resolution in pixels (integer).  Image' +
-                        ' will be square (res x res).  Res should be a' +
-                        ' multiple of 16.')
+    parser.add_argument(
+        '-l', '--lower_bound', type=int, default=5,
+        help='Lower bound for the random number of ellipses to be generated.')
+    parser.add_argument(
+        '-m', '--min_sample', type=int, default=1,
+        help='the sample to start generating from. If some samples have ' +
+        'already been generated and the dataset size needs to be increased, ' +
+        'setting this to a value 1 greater than the number of samples ' +
+        'already generated allows you to "pick up where you left off"')
+    parser.add_argument(
+        '-r', '--res', type=int, default=512, choices=np.arange(64, 1024, 64),
+        help='image resolution in pixels. Image  will be square (res x res).')
     parser.add_argument('-s', '--samples', type=int, default=10,
                         help='integer number of sample images to generate.')
-    parser.add_argument('-u', '--upper_bound', type=int, default=15,
-                        help='a random number (integer) of ellipses will be' +
-                        ' generated.  This is the upper bound for that' +
-                        ' random number.')
+    parser.add_argument(
+        '-u', '--upper_bound', type=int, default=15,
+        help='Upper bound for the random number of ellipses to be generated.')
 
     args = parser.parse_args(cl_args)
 
@@ -94,70 +94,64 @@ def apply_radon(im: np.ndarray, idx: int, directory: str, ord_samps: int,
     """
 
     # Generate names for directories.  If they don't exist, create them
-    dirs = []
-    for count, views in enumerate([1000, 143, 50]):
-        dirs.append(os.path.join(directory, str(views) + '_Views'))
+    dirs = {str(n_views): os.path.join(
+        directory, f'{n_views}_Views') for n_views in RECON_VIEWS}
+    dirs['Sinograms'] = os.path.join(directory, 'Sinograms')
 
-        if not os.path.isdir(dirs[count]):
-            os.mkdir(dirs[count])
+    for dir_name in dirs.values():
+        if not os.path.isdir(dir_name):
+            os.mkdir(dir_name)
 
-    dirsgram = os.path.join(directory, 'Sinograms')
+    for n_angles in RECON_VIEWS:
 
-    if not os.path.isdir(dirsgram):
-        os.mkdir(dirsgram)
+        # Calculate all view angles (degrees) for this projection
+        angles = np.linspace(0.0, 180.0, n_angles, endpoint=False)
 
-    # Calculate all view angles (degrees) for 1000-view projection
-    angles = np.linspace(0.0, 180.0, 1000, endpoint=False)
-
-    # Calculate 'full-view' sinogram and filtered backprojection
-    sgram_full = radon(im, theta=angles, circle=False, preserve_range=True)
-
-    fbp_1000 = iradon(sgram_full, filter_name='ramp', interpolation='linear',
-                      circle=False, preserve_range=True)
-
-    # Calculate low-view FBP
-    angles = np.linspace(0.0, 180.0, 143, endpoint=False)
-    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
-    fbp_143 = iradon(sgram, filter_name='ramp', interpolation='linear',
+        # Calculate sinogram and filtered backprojection
+        sgram = radon(im, theta=angles, circle=False, preserve_range=True)
+        fbp = iradon(sgram, filter_name='ramp', interpolation='linear',
                      circle=False, preserve_range=True)
 
-    angles = np.linspace(0.0, 180.0, 50, endpoint=False)
-    sgram = radon(im, theta=angles, circle=False, preserve_range=True)
-    fbp_50 = iradon(sgram, filter_name='ramp', interpolation='linear',
-                    circle=False, preserve_range=True)
+        # Save file
+        im_name = f'im_{str(idx).zfill(ord_samps)}'
+        np.save(os.path.join(dirs[str(n_angles)], im_name), fbp)
 
-    # Save files
-    im_name = 'im_'+str(idx).zfill(ord_samps)
-    np.save(os.path.join(dirs[0], im_name), fbp_1000)
-    np.save(os.path.join(dirs[1], im_name), fbp_143)
-    np.save(os.path.join(dirs[2], im_name), fbp_50)
-    np.save(os.path.join(dirsgram, im_name), sgram_full)
+        # Save the "full-view" sinogram
+        if n_angles == 1000:
+            np.save(os.path.join(dirs['Sinograms'], im_name), sgram)
 
-    if display and idx == 1:
-        print('1000-view sinogram size: ' + str(np.shape(sgram)))
-        print('143-view sinogram size: ' + str(np.shape(sgram[:, ::7])))
-        print('50-view sinogram size: ' + str(np.shape(sgram[:, ::20])))
+        if display and idx == 1:
 
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 8))
+            if n_angles == 1000:
+                print(f'1000-view sinogram size: {np.shape(sgram)}')
 
-        ax1.set_title("Original")
-        ax1.imshow(im, cmap=plt.cm.Greys_r)
-        ax1.axis('off')
+                # Create the subplots, add original and 1000-View FBP
+                fig, ax = plt.subplots(2, 2, figsize=(8, 8))
 
-        ax2.set_title("FBP 1000 Views")
-        ax2.imshow(fbp_1000, cmap=plt.cm.Greys_r)
-        ax2.axis('off')
+                ax[0, 0].set_title("Original")
+                ax[0, 0].imshow(im, cmap=plt.cm.Greys_r)
+                ax[0, 0].axis('off')
 
-        ax3.set_title("FBP 143 Views")
-        ax3.imshow(fbp_143, cmap=plt.cm.Greys_r)
-        ax3.axis('off')
+                ax[0, 1].set_title(f"FBP {n_angles} Views")
+                ax[0, 1].imshow(fbp, cmap=plt.cm.Greys_r)
+                ax[0, 1].axis('off')
 
-        ax4.set_title("FBP 50 Views")
-        ax4.imshow(fbp_50, cmap=plt.cm.Greys_r)
-        ax4.axis('off')
+            elif n_angles == 143:
+                print(f'143-view sinogram size: {np.shape(sgram[:, ::7])}')
 
-        fig.tight_layout()
-        plt.show()
+                ax[1, 0].set_title(f"FBP {n_angles} Views")
+                ax[1, 0].imshow(fbp, cmap=plt.cm.Greys_r)
+                ax[1, 0].axis('off')
+
+            elif n_angles == 50:
+                print(f'50-view sinogram size: {np.shape(sgram[:, ::20])}')
+
+                ax[1, 1].set_title(f"FBP {n_angles} Views")
+                ax[1, 1].imshow(fbp, cmap=plt.cm.Greys_r)
+                ax[1, 1].axis('off')
+
+                fig.tight_layout()
+                plt.show()
 
 
 def make_dataset(args: argparse.Namespace) -> None:
